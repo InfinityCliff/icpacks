@@ -17,11 +17,13 @@ def create_graph_image(data, title='Title', x_name='X', y_name='Y', height=5, wi
         dpi (int): dpi of graph
     """
     rcParams['figure.figsize'] = width, height
-
-    plt.style.use('fivethirtyeight')
-    plt.plot(data)  # TODO test that various types of data will plot correctly
-    plt.title(title)
-    # TODO add x and y axis names
+    if (len(data)) > 0:
+        plt.style.use('fivethirtyeight')
+        plt.plot(data)  # TODO test that various types of data will plot correctly
+        plt.title(title)
+        # TODO add x and y axis names
+    else:
+        return None
 
     buf = io.BytesIO()  # open buffer
     plt.savefig(buf, format='png', dpi=dpi, bbox_inches='tight')  # save figure image to buffer
