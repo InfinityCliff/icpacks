@@ -23,6 +23,32 @@ def image_to_canvas(subframe, photo, row=0, column=0, padx=2, pady=1, sticky='ns
     return photo
 
 
+def create_menu(window, menu_def):
+    """creates a mneu from the provided dict in the provided window
+    
+    Args:
+        window (tkinter.Tk): frame to contain menu
+        menu_def (tuple): menu structure definition    
+    """
+    def create_sub_menu(menu, submenu_def):
+        sub_menu_ = tkinter.Menu()
+        for sub_menu_name, sub_menu_command in submenu_def:
+            sub_menu_.add_command(label=sub_menu_name, command=sub_menu_command)
+
+        return sub_menu_
+
+    top_menu = tkinter.Menu(window)
+
+    for top_menu_name, sub_menu_tpl in menu_def:
+        # sub_menu = tkinter.Menu()
+        sub_menu = create_sub_menu(top_menu, sub_menu_tpl)
+        # for sub_menu_name, sub_menu_command in sub_menu_tpl:
+        #    sub_menu.add_command(label=sub_menu_name, command=sub_menu_command)
+        top_menu.add_cascade(label=top_menu_name, menu=sub_menu)
+
+    window.config(menu=top_menu)
+
+
 def clear_subframe(frame, subframe):
     """clears and recreates subframe
 
