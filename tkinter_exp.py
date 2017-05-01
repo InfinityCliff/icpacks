@@ -24,6 +24,7 @@ def icon(icon_name, size=16):
 
     return ImageTk.PhotoImage(img)
 
+
 def image_to_canvas(subframe, photo, row=0, column=0, padx=2, pady=1, sticky='nsew', x1=0, y1=0, anchor='nw', canvas=None):
     """place graph image on canvas, and place canvas in subframe
 
@@ -184,24 +185,88 @@ def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0
     return subframe
 
 
-class ScrollFrame(object):
+class ListBoxController(tkinter.Listbox):
+    """creates a list box with specified control elements and a scroll bar"""
+
+    def __init__(self, window, row=0, column=0, sticky='nsew', button='+-', duplicates=False, issorted=True,
+                 widget_link=None):
+        self.frame = tkinter.Frame(window)
+        self.frame.grid(row=row, column=column, sticky='nsew')
+
+        super().__init__(self.frame)
+        super().grid(row=0, column=0, sticky='nsew', columnspan=4)
+
+        self.widget_link = widget_link
+
+        self.duplicates = duplicates
+        self.issorted = issorted
+
+        if '+' in button:
+            self._create_add_button()
+        if '-' in button:
+            self._create_delete_button()
+
+    def clear(self):
+        self.delete(0, tkinter.END)
+
+    def list_items(self):
+        return list(self.get(0, tkinter.END))
+
+    def _create_add_button(self):
+        but = tkinter.Button(self.frame, command=self.add_item, image=icon('plus'))
+        but.grid(row=1, column=2, sticky='nsew')
+
+    def add_item(self):
+        print(self.widget_link.get())
+        listbox_items = self.list_items()
+        if not self.duplicates:
+            if self.widget_link.get() not in listbox_items:
+                self.insert(tkinter.END, self.widget_link.get())
+                listbox_items.append(self.widget_link.get())
+        else:
+            self.insert(tkinter.END, self.widget_link.get())
+            listbox_items.append(self.widget_link.get())
+
+        if self.issorted:
+            self.clear()
+            for f in sorted(listbox_items):
+                self.insert(tkinter.END, f)
+
+    def _create_delete_button(self):
+        but = tkinter.Button(self.frame, command=self.delete_item)
+        but.grid(row=1, column=3, sticky='nsew')
+
+    def delete_item(self):
+        pass
+
+
+class ScrollFrame(tkinter.Canvas):
+    """ creates a canvas with scroll bar
+    
+    Methods:
+        __init__:
+        onframeconfigure:
+        scroll_frame: returns the frame on the canvas that is used to scroll, any widgets should be placed here
+    
+    http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
+    """
 
     def __init__(self, window):
-        self.canvas = tkinter.Canvas(window)
-        self.frame = tkinter.Frame(self.canvas)
-        self.vsb = tkinter.Scrollbar(window, orient='vertical', command=self.canvas.yview)
+        super().__init__(window)
 
+        self.frame = tkinter.Frame(self)
+        self.vsb = tkinter.Scrollbar(window, orient='vertical', command=self.yview)   # self.canvas.yview)
+
+        self.grid(row=0, column=0, sticky='nsew')
         self.vsb.grid(row=0, column=1, sticky='ns')
-        self.canvas.grid(row=0, column=0, sticky='nsew')
 
-        self.canvas.create_window((4, 4), window=self.frame, anchor='nw')
+        self.create_window((4, 4), window=self.frame, anchor='nw')
 
-        self.frame.bind('<Configure>', lambda event, canvas=self.canvas: self.onframeconfigure(self.canvas))
+        self.frame.bind('<Configure>', lambda event, canvas=self:  self.onframeconfigure())
 
-    @staticmethod
-    def onframeconfigure(canvas):
+    def onframeconfigure(self):
         """Reset the scroll region to encompass the inner frame"""
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        self.configure(scrollregion=self.bbox("all"))
 
     def scroll_frame(self):
         return self.frame
