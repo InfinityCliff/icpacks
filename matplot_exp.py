@@ -7,14 +7,13 @@ import matplotlib.pyplot as plt
 def create_graph_image(data, title='Title', x_name='X', y_name='Y', height=5, width=10, dpi=50):
     """return (ImageTk.PhotoImage) image of the graph
 
-    Args:
-        data : data to plot  
-        title (Str) : Graph Title
-        x_name (Str) : x axis name
-        y_name (Str): y axis name
-        height (int): height of graph
-        width (int): width of graph
-        dpi (int): dpi of graph
+        :param data:: data to plot  
+        :param title:str: Graph Title
+        :param x_name:str : x axis name
+        :param y_name:str: y axis name
+        :param height:int: height of graph
+        :param width:int: width of graph
+        :param dpi:int: dpi of graph
     """
     rcParams['figure.figsize'] = width, height
     if (len(data)) > 0:
