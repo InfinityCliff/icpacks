@@ -3,6 +3,7 @@ import os
 from PIL import ImageTk, Image
 
 icons = {'bookmark': 'add_bookmark.png',
+         'clear': 'clear.png',
          'fileopen': 'fileopen.png',
          'folder': 'folder.png',
          'minus': 'minus.png',
@@ -185,13 +186,40 @@ def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0
     return subframe
 
 
+class TableController(tkinter.Frame):
+
+    def __init__(self, window, row=0, column=0, sticky='nsew', columnspan=1, size='4x4'):
+        super().__init__(window)
+        super().grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
+        table_list = []
+        table_rows, table_cols = [int(x) for x in size.split('x')]
+        for x in range(table_rows):
+            table_rows.append([])
+        print(table_rows)
+        for r in range(table_rows):
+            for c in range(table_cols):
+                table_list.append(tkinter.Label(self, text='test'))
+        print(table_list)
+
 class ListBoxController(tkinter.Listbox):
     """creates a list box with specified control elements and a scroll bar"""
 
-    def __init__(self, window, row=0, column=0, sticky='nsew', button='+-', duplicates=False, issorted=True,
+    def __init__(self, window, row=0, column=0, sticky='nsew', buttons='+-c', duplicates=False, issorted=True,
                  widget_link=None):
+        """ :param: window:tkinter.Frame type object to contain controller
+            :param: row:int: row in `window` to add `self.frame`
+            :param: col:int: column in `window` to add `self.frame`
+            :param: sticky:str: for grid
+            :param: buttons:str: buttons to add to controller, order of string indicates order of buttons
+                    + : add 
+                    - : delete
+                    c : clear
+            :param: duplicates:bool: True to allow duplicates in list
+            :param: issorted:cool: True if list to be always sorted
+            :param: widget_link:tkinter.widget: widget providing information to add to list, must have a .get()
+            """
         self.frame = tkinter.Frame(window)
-        self.frame.grid(row=row, column=column, sticky='nsew')
+        self.frame.grid(row=row, column=column, sticky=sticky)
 
         super().__init__(self.frame)
         super().grid(row=0, column=0, sticky='nsew', columnspan=4)
@@ -201,10 +229,8 @@ class ListBoxController(tkinter.Listbox):
         self.duplicates = duplicates
         self.issorted = issorted
 
-        if '+' in button:
-            self._create_add_button()
-        if '-' in button:
-            self._create_delete_button()
+        self.img_list = []
+        self._create_buttons(buttons)
 
     def clear(self):
         self.delete(0, tkinter.END)
@@ -212,9 +238,28 @@ class ListBoxController(tkinter.Listbox):
     def list_items(self):
         return list(self.get(0, tkinter.END))
 
-    def _create_add_button(self):
-        but = tkinter.Button(self.frame, command=self.add_item, image=icon('plus'))
-        but.grid(row=1, column=2, sticky='nsew')
+    def _create_buttons(self, but_type):
+        col = 4
+        for b in reversed(but_type):
+            if b == '-':
+                icon_name = 'minus'
+                col -= 1
+                command = self.delete_item
+            elif b == '+':
+                icon_name = 'plus'
+                col -= 1
+                command = self.add_item
+            elif b == 'c':
+                icon_name = 'clear'
+                col -= 1
+                command = self.clear
+            else:
+                return None
+
+            img = icon(icon_name)
+            self.img_list.append(img)
+            but = tkinter.Button(self.frame, command=command, image=img)
+            but.grid(row=1, column=col, sticky='nsew')
 
     def add_item(self):
         print(self.widget_link.get())
@@ -232,10 +277,6 @@ class ListBoxController(tkinter.Listbox):
             for f in sorted(listbox_items):
                 self.insert(tkinter.END, f)
 
-    def _create_delete_button(self):
-        but = tkinter.Button(self.frame, command=self.delete_item)
-        but.grid(row=1, column=3, sticky='nsew')
-
     def delete_item(self):
         pass
 
@@ -245,7 +286,7 @@ class ScrollFrame(tkinter.Canvas):
     
     Methods:
         __init__:
-        onframeconfigure:
+        onframeconfigure::
         scroll_frame: returns the frame on the canvas that is used to scroll, any widgets should be placed here
     
     http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
