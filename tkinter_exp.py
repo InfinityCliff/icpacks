@@ -188,18 +188,65 @@ def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0
 
 class TableController(tkinter.Frame):
 
-    def __init__(self, window, row=0, column=0, sticky='nsew', columnspan=1, size='4x4'):
+    def __init__(self, window, row=0, column=0, sticky='nsew', columnspan=1, size='4x4', headers=None, indexlabel=None,
+                 colformat=None, rowformat=None):
         super().__init__(window)
         super().grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
+
         table_list = []
         table_rows, table_cols = [int(x) for x in size.split('x')]
+
         for x in range(table_rows):
-            table_rows.append([])
-        print(table_rows)
-        for r in range(table_rows):
-            for c in range(table_cols):
-                table_list.append(tkinter.Label(self, text='test'))
-        print(table_list)
+            table_list.append([])
+
+        if headers is not None and len(headers) > 0:
+            header = True
+            table_list.insert(0, [])
+            header_row = 1
+            indexlabel.insert(0, '')
+            if len(headers) < table_cols:
+                for x in range(len(headers), table_cols):
+                    headers.append('c' + str(x))
+        else:
+            header = False
+            header_row = 0
+
+        if indexlabel is not None and len(indexlabel) > 0:
+            index = True
+            index_col = 1
+            headers.insert(0, '')
+            if len(indexlabel) < table_rows:
+                for x in range(len(indexlabel) - header_row, table_rows):
+                    indexlabel.append('r' + str(x))
+        else:
+            index = False
+            index_col = 0
+
+        sf = ''
+        pre = ''
+        font = ''
+
+        # col_ = {0 : 'sf=.2f|pre=$|font=biu'  TODO working here ----------------------------------------
+
+        for r in range(table_rows + header_row):
+            for c in range(table_cols + index_col):
+                if header and r == 0:
+                    text = headers[c]
+                elif index and c == 0:
+                    text = indexlabel[r]
+                else:
+                    text = str(r) + str(c)
+                    text1 =  '{' + colformat.get(c) + '}'
+                    print(text1)
+                    #if colformat is not None:
+                    text = text1.format(text)
+                    #if rowformat is not None:
+                    text = '{' + rowformat.get(r, 's') + '}'.format(text)
+
+                lbl = tkinter.Label(self, text=text).grid(row=r, column=c, sticky='nsew')
+                table_list[r].append(lbl)
+
+
 
 class ListBoxController(tkinter.Listbox):
     """creates a list box with specified control elements and a scroll bar"""
