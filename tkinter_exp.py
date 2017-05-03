@@ -1,6 +1,7 @@
 import tkinter
 import os
 from PIL import ImageTk, Image
+import re
 
 icons = {'bookmark': 'add_bookmark.png',
          'clear': 'clear.png',
@@ -190,69 +191,191 @@ class TableController(tkinter.Frame):
 
     def __init__(self, window, row=0, column=0, sticky='nsew', columnspan=1, size='4x4', headers=None, indexlabel=None,
                  bold=None, currency=None, float_=None, int_=None):
+        """creates a table
+        
+            :param: window:tkinter.Frame|Labelframe: containter for tablecontroller
+            :param: row:int: row in window
+            :param: column:int: column in window
+            :param: columnspan:int: columnspan in window
+            :param: size:str: size of table - rows x columns
+            :param: headers:list: header labels, optional, if not provided no header row created
+            :param: indexLabel:list: index column labels, optional, if not provided not index column created
+            :param: bold:tuple: columns or rows to be bolded, 0 indexed with or without index/headers.
+                    Designate by: ('col0, 'col2', 'row1')
+            :param: currency: columns or rows to be formated as currency '$0.00', 0 indexed with or without 
+                    index/headers.  Designate by: ('col0, 'col2', 'row1')
+            :param: float_: columns or rows to be formated as float '0.00', 0 indexed with or without index/headers.
+                    Designate by: ('col0, 'col2', 'row1') # TODO be able to set precision
+            :param: int: columns or rows to be formated as int '0', 0 indexed with or without index/headers.
+                    Designate by: ('col0, 'col2', 'row1')  # TODO not working, need to code
+        """
         super().__init__(window)
         super().grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
 
-        table_list = []
-        table_rows, table_cols = [int(x) for x in size.split('x')]
+        self.table_list = []
+        self.table_rows, self.table_cols = [int(x) for x in size.split('x')]
+        self.header_row = 0
+        self.index_col = 0
+        self.header = False
+        self.index = False
 
-        for x in range(table_rows):
-            table_list.append([])
+        for x in range(self.table_rows):  # create a list of blank lists, one for each table row
+            self.table_list.append([])
 
-        if headers is not None and len(headers) > 0:
-            header = True
-            table_list.insert(0, [])
-            header_row = 1
-            indexlabel.insert(0, '')
-            if len(headers) < table_cols:
-                for x in range(len(headers), table_cols):
+        """
+        if headers is not None and len(headers) > 0:  # if header labels sent # TODO do need len check?
+            self.header = True
+            self.table_list.insert(0, [])  # if there is a header row add a list to the beginning
+            indexlabel.insert(0, 'index title')  # if there is an index insert title
+            self.header_row = 1  # used to offset row for header in range calculations
+            if len(headers) < self.table_cols:  # if labels not provided for all columns
+                for x in range(len(headers), self.table_cols):  # fill out with default values
                     headers.append('c' + str(x))
         else:
-            header = False
-            header_row = 0
-
-        if indexlabel is not None and len(indexlabel) > 0:
-            index = True
-            index_col = 1
-            headers.insert(0, '')
-            if len(indexlabel) < table_rows:
-                for x in range(len(indexlabel) - header_row, table_rows):
+            self.header = False
+            self.header_row = 0
+        """
+        if indexlabel is not None and len(indexlabel) > 0:  # if index labels sent # TODO do need len check?
+            self.index = True
+            headers.insert(0, '')  # if there is an index columns add a empty string to the beginning
+            self.index_col = 1  # used to offset column for index in range calculations
+            if len(indexlabel) < self.table_rows:  # if labels not provided for all rows
+                for x in range(len(indexlabel) - self.header_row, self.table_rows):  # fill out with default values
                     indexlabel.append('r' + str(x))
         else:
-            index = False
-            index_col = 0
-        for r in range(table_rows + header_row):
-            for c in range(table_cols + index_col):
-                if header and r == 0:
-                    text = headers[c]
-                elif index and c == 0:
-                    text = indexlabel[r]
+            self.index = False
+            self.index_col = 0
+
+        # fill out table data
+        for r in range(self.table_rows + self.header_row):  # for each row
+            for c in range(self.table_cols + self.index_col):  # for each column in each row
+                if self.header and r == 0:  # if there is a header and on first row,
+                    text = headers[c]  # set text to label
+                elif self.index and c == 0:    # if there is an index and on first column,
+                    text = indexlabel[r]  # set text to label
                 else:
-                    text = str(r) + str(c)
-                font = 'normal'
-                if 'row' + str(r) in bold:
-                    font = 'bold'
-                if 'col' + str(c) in bold:
-                    font = 'bold'
+                    text = str(r) + str(c)  # else use cell value TODO - need to set ability to add cell data
 
-                if 'col' + str(c) in currency:
-                    if (header and r > 0) or (not header):
-                        text = '${0:.2f}'.format(float(text))
+                # create tkinter.label and add to table
+                lbl = tkinter.Label(self, text=text, font=('arial', 10, 'normal'))
+                lbl.grid(row=r, column=c, sticky='nsew')
+                self.table_list[r].append(lbl)  # add label to list so information can be updated later, stored by rows
 
-                text = self._get_format(text, 'col', currency, r, header, '${0:.2f}', float)
+    def fill_blank_row(self, row=0):
+        """returns a list with blank labels in the specified row"""
+        empty_list = []
+        for col in range(self.table_cols):
+            lbl = tkinter.Label(self, text='', font=('arial', 10, 'normal'))
+            lbl.grid(row=row, column=col, sticky='nsew')
+            empty_list.append(lbl)
+        return empty_list
 
-                if 'col' + str(c) in float_:
-                    if (header and r > 0) or (not header):
-                        text = '${0:.2f}'.format(float(text))
+    def header_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
+        self.table_list.insert(0, self.fill_blank_row())  # if there is a header row add a list to the beginning
+        self.header = True
+        self.header_row = 1  # used to offset row for header in range calculations
+        self.row(row=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
-                lbl = tkinter.Label(self, text=text, font=('arial', 10, font)).grid(row=r, column=c, sticky='nsew')
-                table_list[r].append(lbl)
+    def index_label(self, data, format_=None,  fontname='arial', fontstyle='normal', fontsize=10):
+        self.column(data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
-    def _get_format(self, text, what, where, ordinal, ordinal_prime, format_code, format_type):
-        # TODO WORKING HERE --------------------------------------------
-        if what + str(ordinal) in where:
-            if (ordinal_prime and ordinal > 0) or (not ordinal_prime):
-                result = format_code.format(format_type(text))
+    def column(self, col, data=None, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
+        if self.header:
+            row = 1
+        else:
+            row = 0
+
+        if data is None:
+            iterrange = self.table_rows
+        else:
+            iterrange = min(len(data), self.table_rows)
+
+        font = ('arial', 10, 'normal')
+        for x in range(iterrange):
+            if data is not None:
+                label_text = str(data[x])  # grab label text from provided data set
+            else:
+                # noinspection PyTypeChecker
+                label_text = self.table_list[row][col]['text']  # otherwise grab existing label text
+
+            # format accordingly
+            if format_ is not None:
+                if 'float' in format_:
+                    fc = '{0:.' + str(dec) + 'f}'
+                    label_text = fc.format(float(label_text))
+                if '$' in format_:
+                    non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
+                    label_text = non_decimal.sub('', label_text)
+                    fc = '${0:.' + str(dec) + 'f}'
+                    label_text = fc.format(float(label_text))
+                if 'int' in format_:
+                    # noinspection
+                    non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
+                    label_text = non_decimal.sub('', label_text)
+                    label_text = int(label_text)
+
+            # reassign text, etc to label
+            self.table_list[row][col]['text'] = label_text
+            self.table_list[row][col]['font'] = (fontname, fontsize, fontstyle)
+
+            row += 1
+
+    def row(self, row, data=None, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
+        if self.index:
+            col = 1
+        else:
+            col = 0
+
+        font = ('arial', 10, 'normal')
+        for x in range(min(len(data), self.table_cols)):
+            if data is not None:
+                label_text = data[x]  # grab label text from provided data set
+            else:
+                label_text = self.table_list[row][col].__str__()  # otherwise grab existing label text
+
+            # format accordingly
+            if format_ is not None:
+                if 'float' in format_:
+                    fc = '{0:.' + str(dec) + 'f}'
+                    label_text = fc.format(float(label_text))
+                if '$' in format_:
+                    print(label_text)
+                    fc = '${0:.' + str(dec) + 'f}'
+                    label_text = fc.format(float(label_text))
+                    print(label_text)
+                if 'int' in format_:
+                    non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
+                    label_text = non_decimal.sub('', label_text)
+                    label_text = int(label_text)
+
+            # reassign text, etc to label
+            self.table_list[row][col]['text'] = label_text
+            self.table_list[row][col]['font'] = (fontname, fontsize, fontstyle)
+            col += 1
+
+    def _apply_format(self, text, colrow, where, ordinal1, ordinal2, ordinal_prime, format_code, num_type):
+        """apply formating to label text
+        
+            :param: text:str: string to be formateed
+            :param: colrow:str: indicator for column or row to be formated, shoould be 'col' or 'row'
+            :param: where:tuple: which data set to detrmine if formatting has been specified
+            :param: ordinal1:int: column or row being evaluated
+            :param: ordinal2:int: used in determienation of current row/colum evaluation so formatiing not applied 
+                    to header and index labels
+            :param: ordinal_prime:bool: used to determine if header or index, as nuber formatting is not applied to
+                    header and index labels 
+            :param: format_code:str, .format like: formatting to apply
+            :param: num_type: class: converts text to number before applying format
+        """
+        result = text  # default if no conditions below are true
+        non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
+        text = non_decimal.sub('', text)  # strip off non numbers
+
+        if colrow + str(ordinal1) in where:  # if the column or row, 'col1' -- 'row1', etc is in data set
+            # ensure formatting not applied to header and index labels
+            if (ordinal_prime and ordinal2 > 0) or (not ordinal_prime):
+                result = format_code.format(num_type(text))  # apply formatting
+
         return result
 
 
@@ -421,3 +544,8 @@ class CreateToolTip(object):  # TODO not working, tooltip does not display on bu
         self.tw = None
         if tw:
             tw.destroy()
+
+if __name__ == '__main__':
+    main = tkinter.Tk()
+
+    main.mainloop()
