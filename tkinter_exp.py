@@ -189,7 +189,7 @@ def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0
 class TableController(tkinter.Frame):
 
     def __init__(self, window, row=0, column=0, sticky='nsew', columnspan=1, size='4x4', headers=None, indexlabel=None,
-                 colformat=None, rowformat=None):
+                 bold=None, currency=None, float_=None, int_=None):
         super().__init__(window)
         super().grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
 
@@ -221,13 +221,6 @@ class TableController(tkinter.Frame):
         else:
             index = False
             index_col = 0
-
-        sf = ''
-        pre = ''
-        font = ''
-
-        # col_ = {0 : 'sf=.2f|pre=$|font=biu'  TODO working here ----------------------------------------
-
         for r in range(table_rows + header_row):
             for c in range(table_cols + index_col):
                 if header and r == 0:
@@ -236,16 +229,31 @@ class TableController(tkinter.Frame):
                     text = indexlabel[r]
                 else:
                     text = str(r) + str(c)
-                    text1 =  '{' + colformat.get(c) + '}'
-                    print(text1)
-                    #if colformat is not None:
-                    text = text1.format(text)
-                    #if rowformat is not None:
-                    text = '{' + rowformat.get(r, 's') + '}'.format(text)
+                font = 'normal'
+                if 'row' + str(r) in bold:
+                    font = 'bold'
+                if 'col' + str(c) in bold:
+                    font = 'bold'
 
-                lbl = tkinter.Label(self, text=text).grid(row=r, column=c, sticky='nsew')
+                if 'col' + str(c) in currency:
+                    if (header and r > 0) or (not header):
+                        text = '${0:.2f}'.format(float(text))
+
+                text = self._get_format(text, 'col', currency, r, header, '${0:.2f}', float)
+
+                if 'col' + str(c) in float_:
+                    if (header and r > 0) or (not header):
+                        text = '${0:.2f}'.format(float(text))
+
+                lbl = tkinter.Label(self, text=text, font=('arial', 10, font)).grid(row=r, column=c, sticky='nsew')
                 table_list[r].append(lbl)
 
+    def _get_format(self, text, what, where, ordinal, ordinal_prime, format_code, format_type):
+        # TODO WORKING HERE --------------------------------------------
+        if what + str(ordinal) in where:
+            if (ordinal_prime and ordinal > 0) or (not ordinal_prime):
+                result = format_code.format(format_type(text))
+        return result
 
 
 class ListBoxController(tkinter.Listbox):
