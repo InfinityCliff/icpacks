@@ -220,7 +220,7 @@ class TableController(tkinter.Frame):
         self.index = False
 
         for x in range(self.table_rows):  # create a list of blank lists, one for each table row
-            self.table_list.append([])
+            self.table_list.append([])    # these will contain the labels that make up the table
 
         """
         if headers is not None and len(headers) > 0:  # if header labels sent # TODO do need len check?
@@ -234,7 +234,7 @@ class TableController(tkinter.Frame):
         else:
             self.header = False
             self.header_row = 0
-        """
+        
         if indexlabel is not None and len(indexlabel) > 0:  # if index labels sent # TODO do need len check?
             self.index = True
             headers.insert(0, '')  # if there is an index columns add a empty string to the beginning
@@ -245,14 +245,14 @@ class TableController(tkinter.Frame):
         else:
             self.index = False
             self.index_col = 0
-
+        """
         # fill out table data
-        for r in range(self.table_rows + self.header_row):  # for each row
+        for r in range(self.table_rows + self.header_row):     # for each row
             for c in range(self.table_cols + self.index_col):  # for each column in each row
-                if self.header and r == 0:  # if there is a header and on first row,
-                    text = headers[c]  # set text to label
-                elif self.index and c == 0:    # if there is an index and on first column,
-                    text = indexlabel[r]  # set text to label
+                if self.header and r == 0:                     # if there is a header and on first row,
+                    text = headers[c]                          # set text to label
+                elif self.index and c == 0:                    # if there is an index and on first column,
+                    text = indexlabel[r]                       # set text to label
                 else:
                     text = str(r) + str(c)  # else use cell value TODO - need to set ability to add cell data
 
@@ -270,14 +270,40 @@ class TableController(tkinter.Frame):
             empty_list.append(lbl)
         return empty_list
 
+    def insert_row(self, row=0):
+        """inserts a row in the table at specified lcoation"""
+        for table_row in reversed(range(0, len(self.table_list))):
+            if table_row >= row:
+                for lbl in self.table_list[table_row]:
+                    lbl.grid(row=table_row+1)
+        self.table_list.insert(row, self.fill_blank_row())
+        self.update()
+
+    def insert_column(self, col=0):
+        """inserts a column in the table at specified location"""
+        for table_row in range(len(self.table_list)):
+            for table_col in range(len(self.table_list[table_row])):
+                if table_col > col:
+                    self.table_list[table_row][table_col].grid(column=table_col+1)
+                if table_col == col:
+                    lbl = tkinter.Label(self, text='', font=('arial', 10, 'normal'))
+                    lbl.grid(row=table_row, column=table_col, sticky='nsew')
+                    self.table_list[table_row][table_col] = lbl
+        self.update()
+
     def header_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
-        self.table_list.insert(0, self.fill_blank_row())  # if there is a header row add a list to the beginning
+        """add header row and labels to table"""
+        self.insert_row(0)  # if there is a header row add a list to the beginning
         self.header = True
-        self.header_row = 1  # used to offset row for header in range calculations
+        self.table_rows += 1  # used to offset row for header in range calculations
         self.row(row=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
-    def index_label(self, data, format_=None,  fontname='arial', fontstyle='normal', fontsize=10):
-        self.column(data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
+    def index_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
+        """add index column and labels to table"""
+        self.insert_column(0)
+        self.index = True
+        self.table_cols += 1
+        self.column(col=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
     def column(self, col, data=None, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
         if self.header:
@@ -291,11 +317,12 @@ class TableController(tkinter.Frame):
             iterrange = min(len(data), self.table_rows)
 
         font = ('arial', 10, 'normal')
-        for x in range(iterrange):
+        for x in range(self.index, iterrange):
             if data is not None:
                 label_text = str(data[x])  # grab label text from provided data set
             else:
                 # noinspection PyTypeChecker
+                print(row, col)
                 label_text = self.table_list[row][col]['text']  # otherwise grab existing label text
 
             # format accordingly
@@ -326,8 +353,13 @@ class TableController(tkinter.Frame):
         else:
             col = 0
 
+        if data is None:
+            iterrange = self.table_cols
+        else:
+            iterrange = min(len(data), self.table_cols)
+
         font = ('arial', 10, 'normal')
-        for x in range(min(len(data), self.table_cols)):
+        for x in range(self.header, iterrange):
             if data is not None:
                 label_text = data[x]  # grab label text from provided data set
             else:
