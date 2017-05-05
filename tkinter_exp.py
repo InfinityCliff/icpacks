@@ -218,70 +218,79 @@ class TableController(tkinter.Frame):
         self.index_col = 0
         self.header = False
         self.index = False
+        self.sub_frame = tkinter.Frame(self)
+        self.sub_frame.grid(row=0, column=0, sticky='nsew')
 
+        # define table in dict
         for x in range(self.table_rows):  # create a list of blank lists, one for each table row
             rowname = 'row' + str(x)
-            self.table_dict[rowname] = []    # these will contain the labels that make up the table
+            self.table_dict[rowname] = {'text': [], 'lbl': []}    # these will contain the labels that make up the table
 
-        # fill out table data
-        for r in range(self.table_rows + self.header_row):     # for each row
-            for c in range(self.table_cols + self.index_col):  # for each column in each row
-                text = str(r) + str(c)  # else use cell value TODO - need to set ability to add cell data
+        self.draw_table(True)
 
+    def draw_table(self, init=False):
+        self.sub_frame = clear_subframe(self, self.sub_frame)
+        for table_row in range(self.table_rows):     # for each row
+            for table_col in range(self.table_cols):  # for each column in each row
+                rowname = 'row' + str(table_row)
+                if init:  # TODO delete once set up, only need for testing
+                    text = str(table_row) + str(table_col)
+                    self.table_dict[rowname]['text'].append(text)
+                text = self.table_dict[rowname]['text'][table_col]
+                fontstyle = 'normal'
+                if self.header and table_row == 0:
+                    fontstyle = 'bold'
+                if self.index and table_col == 0:
+                    fontstyle = 'bold'
                 # create tkinter.label and add to dict
-                lbl = tkinter.Label(self, text=text, font=('arial', 10, 'normal'))
-                lbl.grid(row=r, column=c, sticky='nsew')
-                rowname = 'row' + str(r)
-                self.table_dict[rowname].append(lbl)    # add label to list so information can be updated later,
-                                                        # stored by rows
+                lbl = tkinter.Label(self.sub_frame, text=text, font=('arial', 10, fontstyle))
+                lbl.grid(row=table_row, column=table_col, sticky='nsew')
+                # TODO add label to 'lbl' list                 # stored by rows
+        self.update()
 
-    def fill_blank_row(self, row=0):
+    def add_blank_row(self, row=0):
         """returns a list with blank labels in the specified row"""
-        empty_list = []
-        for col in range(self.table_cols):
+        new_row = {'text': [], 'lbl': []}
+        for c in range(self.table_cols):
             lbl = tkinter.Label(self, text='', font=('arial', 10, 'normal'))
-            lbl.grid(row=row, column=col, sticky='nsew')
-            empty_list.append(lbl)
-        return empty_list
+            lbl.grid(row=row, column=c, sticky='nsew')
+            new_row['text'].append('br' + str(c) + str(row))
+            # TODO add 'lbl'
+        return new_row
 
     def insert_row(self, row=0):
         """inserts a row in the table at specified lcoation"""
-        for table_row in reversed(range(self.table_cols)):
-            if table_row >= row:                                    # for each row if row is > insert row
-                rowname = 'row' + str(table_row)
-                for lbl in self.table_dict[rowname]:
-                    lbl.grid(row=table_row+1)                       # move everything down in .grid
-                newrow = 'row' + str(table_row + 1)
+        for tr in reversed(range(self.table_cols)):
+            if tr >= row:                                           # for each row if row is > insert row
+                rowname = 'row' + str(tr)
+                newrow = 'row' + str(tr + 1)
                 self.table_dict[newrow] = self.table_dict[rowname]  # move the dict row to next row
         rowname = 'row' + str(row)
-        self.table_dict[rowname] = self.fill_blank_row(row)         # insert blank row in dict at new row location
-        self.update()
+        self.table_dict[rowname] = self.add_blank_row(row)         # insert blank row in dict at new row location
 
     def insert_column(self, col=0):
         """inserts a column in the table at specified location"""
         for table_row in range(self.table_rows):
             rowname = 'row' + str(table_row)
-            for column in reversed(range(len(self.table_dict[rowname]))):
-                if column >= col:
-                    self.table_dict[rowname][column].grid(column=column + 1)
-            lbl = tkinter.Label(self, text='', font=('arial', 10, 'normal'), bg='blue')
-            lbl.grid(row=table_row, column=col, sticky='nsew')
-            self.table_dict[rowname].insert(col, lbl)
-        self.update()
+            self.table_dict[rowname]['text'].insert(col, 'bc' + str(table_row))
 
     def header_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
         """add header row and labels to table"""
-        self.insert_row(0)  # if there is a header row add a list to the beginning
-        self.header = True
-        self.table_rows += 1  # used to offset row for header in range calculations
-        self.row(row=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
+        if not self.header:
+            self.insert_row(0)  # if there is a header row add a list to the beginning
+            self.header = True
+            self.table_rows += 1  # used to offset row for header in range calculations
+        self.draw_table()
+        # self.row(row=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
     def index_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
         """add index column and labels to table"""
-        self.insert_column(0)
-        self.index = True
-        self.table_cols += 1
-        self.column(col=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
+        if not self.index:
+            self.insert_column(0)
+            self.index = True
+            self.table_cols += 1
+        self.draw_table()
+        #self.column(col=0, data=data, format_=format_, fontname=fontname, fontstyle=fontstyle, fontsize=fontsize)
 
     def column(self, col, data=None, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
         if self.header:
@@ -296,7 +305,8 @@ class TableController(tkinter.Frame):
 
         font = ('arial', 10, 'normal')
         for x in range(self.header, iterrange):
-            rowname = 'row' + str(x)
+            rowname = 'row' + str(x + self.header)
+            print(rowname)
             if data is not None:
                 label_text = str(data[x])  # grab label text from provided data set
             else:
