@@ -274,6 +274,7 @@ class TableController(tkinter.Frame):
             rowname = 'row' + str(table_row)
             self.table_dict[rowname]['text'].insert(col, 'bc' + str(table_row))
 
+    # commit comment test
     def header_labels(self, data, format_=None,  fontname='arial', fontstyle='bold', fontsize=12):
         """add header row and labels to table"""
         if not self.header:
