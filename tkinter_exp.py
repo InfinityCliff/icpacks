@@ -189,10 +189,10 @@ def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0
     return subframe
 
 
-class TableController(tkinter.Frame):
+class TableFrame(pd.DataFrame):
 
-    def __init__(self, window, size, index=None, header=None, row=0, column=0, sticky='nsew', columnspan=1,
-                 bold=None, currency=None, float_=None, int_=None, blank='--'):
+    def __init__(self, window, data=None, index=None, columns=None, row=0, column=0, sticky='nsew', columnspan=1,
+                 orient='columns', bold=None, currency=None, float_=None, int_=None, blank='--'):
         """creates a table
         
             :param: window:tkinter.Frame|Labelframe: containter for tablecontroller
@@ -209,31 +209,38 @@ class TableController(tkinter.Frame):
             :param: int: columns or rows to be formated as int '0', 0 indexed with or without index/headers.
                     Designate by: ('col0, 'col2', 'row1')  # TODO not working, need to code
         """
-        super().__init__(window)
-        super().grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
+        if type(data) is pd.DataFrame:
+            super().__init__(data=data, index=data.index.values, columns=data.columns)
+        elif type(data) is dict:
+            df = pd.DataFrame.from_dict(data=data, orient=orient, columns=columns)
+            super().__init__(data=df)
+        else:
+            super().__init__(data=data, index=index, columns=columns)
 
-        cols, rows = [int(x) for x in size.split('x')]
+        self.frame = tkinter.Frame(window)
+        self.frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
 
+        self.visible_columns = True
+        self.visible_index = True
+
+        '''
         if index is not None:
-            self.index_is_set = True
         else:
-            self.index_is_set = False
-
-        if header is not None:
-            self.header_is_set = True
-            col_range = header.copy()
+            self.hidden_index = False
+        
+        if columns is not None:
+            col_range = columns.copy()
         else:
-            self.header_is_set = False
+            self.hidden_columns = False
             col_range = range(cols)
+        '''
 
-        self.sub_frame = tkinter.Frame(self)
+        self.sub_frame = tkinter.Frame(self.frame)
         self.sub_frame.grid(row=0, column=0, sticky='nsew')
         self.blank_cell = blank
-        self.df = pd.DataFrame(index=index, columns=header)
-        for colname in col_range:
-            self.df[colname] = self.default_col(rows)
 
-        self.draw_table()
+    def update(self, other, join='left', overwrite=True, filter_func=None, raise_conflict=False):
+        super().update(other, join='left', overwrite=True, filter_func=None, raise_conflict=False)
 
     def update_data(self, new_data, join='left', overwrite=True, filter_func=None, raise_conflict=False):
         if type(new_data) == np.ndarray:
@@ -245,14 +252,16 @@ class TableController(tkinter.Frame):
         else:
             return
 
-        new_data.set_index(self.df.index.values, inplace=True)
-        new_data.columns = self.df.columns
-        print(new_data)
-        for column in self.df.columns:
-            print(column)
-            self.df[column] = new_data[column]
+        new_data.set_index(self.index.values, inplace=True)
+        new_data.columns = self.columns
+        for column in self.columns:
+            self[column] = new_data[column]
 
-        self.draw_table()
+    def hide_index(self, val=True):
+        self.visible_index = val
+
+    def hide_columns(self, val=True):
+        self.visible_columns = val
 
     def default_col(self, rows):
         return [self.blank_cell] * rows
@@ -263,56 +272,52 @@ class TableController(tkinter.Frame):
         return lbl
 
     def draw_table(self):
-        self.sub_frame = clear_subframe(self, self.sub_frame)
+        self.sub_frame = clear_subframe(self.frame, self.sub_frame)
 
         col = 0
         row = 1
         # add index to table
-        if self.index_is_set:
-            index_labels = list(self.df.index.tolist())
-            for item in index_labels:
+        if self.visible_index:
+            # index_labels = list(self.index.tolist())
+            for item in list(self.index.tolist()):
                 self.add_label(row=row, col=col, text=item)
                 row += 1
             col += 1
 
         # add headers to table
-        header_labels = list(self.df)
+        header_labels = list(self)
         row = 0
-        if self.header_is_set:
+        if self.visible_columns:
             for col_label in header_labels:
                 self.add_label(row=row, col=col, text=col_label)
                 col += 1
 
         # add data to table
-        col = 0 + self.index_is_set
+        col = 0 + self.visible_index
         for col_label in header_labels:
             row = 1
-            for item in self.df[col_label]:
+            for item in self[col_label]:
                 self.add_label(row=row, col=col, text=item)
                 row += 1
             col += 1
 
-        self.update()
+        self.frame.update()
         print(self)
-        print(self.df.index.values)
 
     def insert_row(self, row, value, sort=None):
         """inserts a row in the table at specified lcoation"""
-        self.df.loc[row] = value
+        self.loc[row] = value
         if sort is not None:
             if sort.upper() in ['F', 'FORWARD', 'YES']:
                 ascending = True
             elif sort.upper() in ['R', 'REVERSE', 'REVERSED', 'BACKWARDS']:
                 ascending = False
-            self.df.sort_index(inplace=True, ascending=ascending)
-
-        self.draw_table()
+            self.sort_index(inplace=True, ascending=ascending)
 
     def insert(self, loc, column, value, allow_duplicates=False):
         """inserts a column in the table at specified location"""
-        self.df.insert(loc, column, value)
-        self.df.reindex()
-        self.draw_table()
+        super().insert(loc, column, value)
+        self.reindex()
 
     def column(self, col, data=None, format_=None, dec=2,  fontname='arial', fontstyle='normal',
                fontsize=10):
@@ -341,12 +346,10 @@ class TableController(tkinter.Frame):
 
             # reassign formatted text, etc to label
             if type(col) is str:
-                print(self.df[col], '----------------------')
-                self.df[col] = formated_data
+                self[col] = formated_data
             if type(col) is int:
-                self.df.iloc[col] = formated_data
+                self.iloc[col] = formated_data
             # self.table_dict[rowname][col]['font'] = (fontname, fontsize, fontstyle)
-        self.draw_table()
 
     def row(self, row, data=None, format_=None, dec=2,  _isheader=False, fontname='arial', fontstyle='normal',
             fontsize=10):
@@ -355,15 +358,15 @@ class TableController(tkinter.Frame):
         if _isheader:
             range_start = 0
         else:
-            range_start = self.df.index
+            range_start = self.index
 
         for col in range(range_start, self.df.column_count()):
             if data is not None:
-                data = self.df.validate_data('row', data)
+                data = self.validate_data('row', data)
                 label_text = data[col]  # grab label text from provided data set
             else:
                 rowname = 'row' + str(row)
-                label_text = self.df.table_dict[rowname]['text'][col]  # otherwise grab existing label text
+                label_text = self.table_dict[rowname]['text'][col]  # otherwise grab existing label text
 
             # format accordingly
             if format_ is not None:
@@ -371,10 +374,8 @@ class TableController(tkinter.Frame):
                     fc = '{0:.' + str(dec) + 'f}'
                     label_text = fc.format(float(label_text))
                 if '$' in format_:
-                    print(label_text)
                     fc = '${0:.' + str(dec) + 'f}'
                     label_text = fc.format(float(label_text))
-                    print(label_text)
                 if 'int' in format_:
                     non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
                     label_text = non_decimal.sub('', label_text)
@@ -382,9 +383,8 @@ class TableController(tkinter.Frame):
 
             # reassign text, etc to label
             rowname = 'row' + str(row)
-            self.df.table_dict[rowname]['text'][col] = label_text
+            self.table_dict[rowname]['text'][col] = label_text
             # self.table_dict[rowname][col]['font'] = (fontname, fontsize, fontstyle)
-        self.draw_table()
 
     def _apply_format(self, text, colrow, where, ordinal1, ordinal2, ordinal_prime, format_code, num_type):
         """apply formating to label text
@@ -473,7 +473,6 @@ class ListBoxController(tkinter.Listbox):
             but.grid(row=1, column=col, sticky='nsew')
 
     def add_item(self):
-        print(self.widget_link.get())
         listbox_items = self.list_items()
         if not self.duplicates:
             if self.widget_link.get() not in listbox_items:
