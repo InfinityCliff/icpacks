@@ -1,9 +1,29 @@
+"""
+Module: tkinter_exp
+
+Methods:
+    icon: returns image for use in menu icons
+    image_to_canvas: place graph image on canvas, and place canvas in subframe
+    create_menu: creates a menu from the provided dict in the provided window
+    create_sub_menu: returns sub menu to add to menu cascade
+    clear_subframe: clears and recreates subframe
+    populate_list_box: populates a list box in the GUI with the data provided
+    add_price_data -----------------------may want to delete this as the table takes care of this
+
+class:
+    TableFrame: creates a Dataframe linked to a tkinter frame
+    ListBoxController: creates a list box with specified control elements and a scroll bar
+    ScrollFrame: creates a canvas with scroll bar
+    CreateToolTip: create a tooltip for a given widget
+"""
+
 import tkinter
 import os
 from PIL import ImageTk, Image
 import re
 import numpy as np
 import pandas as pd
+import string_exp
 
 icons = {'bookmark': 'add_bookmark.png',
          'clear': 'clear.png',
@@ -53,7 +73,7 @@ def image_to_canvas(subframe, photo, row=0, column=0, padx=2, pady=1, sticky='ns
 
 
 def create_menu(window, menu_def):
-    """creates a mneu from the provided dict in the provided window
+    """creates a menu from the provided dict in the provided window
 
         :param window:tkinter.Tk: frame to contain menu
         :param menu_def:tuple: menu structure definition
@@ -194,7 +214,7 @@ class TableFrame(pd.DataFrame):
     def __init__(self, window, data=None, index=None, columns=None, orient='columns',
                  row=0, column=0, sticky='nsew', columnspan=1,
                  bold=None, currency=None, float_=None, int_=None, blank='--'):
-        """creates a table
+        """creates a Dataframe linked to a tkinter frame
         
             :param: window:tkinter.Frame|Labelframe: containter for TableFrame
             
@@ -221,7 +241,10 @@ class TableFrame(pd.DataFrame):
                     Designate by: ('col0, 'col2', 'row1') # TODO be able to set precision
             :param: int: columns or rows to be formated as int '0', 0 indexed with or without index/headers.
                     Designate by: ('col0, 'col2', 'row1')  # TODO not working, need to code
-        
+        Methods:
+            TODO ADD-------------------------------
+            
+            
         Usage notes:
             - after createing or altering the datafrme, need to call <draw_table> to display changes in tkinter window
             - to change column data: 
@@ -314,7 +337,7 @@ class TableFrame(pd.DataFrame):
         else:
             super().__init__(data=data, index=index, columns=columns)
 
-        self.label_df = pd.DataFrame('', index=self.index.values, columns=self.columns)
+        self.label_dict = self.to_dict(orient='index')
 
         self.frame = tkinter.Frame(window)
         self.frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
@@ -409,15 +432,14 @@ class TableFrame(pd.DataFrame):
                 lbl = self.add_label(row=row, col=col, text=item)
                 lbl_list.append(lbl)
                 row += 1
-            self.label_df[col_label] = lbl_list
+                self.label_dict[]
             col += 1
 
         self.frame.update()
         if True:
-            print('-----------------------------')
             print(self)
-            print()
-            print(self.label_df)
+
+            print(self.label_dict)
 
     def insert_row(self, row, value, sort=None):
         """inserts a row in the table at specified lcoation
@@ -448,72 +470,38 @@ class TableFrame(pd.DataFrame):
         super().insert(loc, column, value, allow_duplicates)
         # self.reindex()
 
-    def column_format(self, data, col, format_=None, dec=2,  fontname='arial', fontstyle='normal',
+    def column_format(self, col, format_=None, dec=2,  fontname='arial', fontstyle='normal',
                       fontsize=10):
         font = ('arial', 10, 'normal')
 
-        if data is not None:
-            formated_data = []
-            # format accordingly
-            for label_text in data:
-                if format_ is not None:
-                    if 'float' in format_:
-                        fc = '{0:.' + str(dec) + 'f}'
-                        formated_data.append(fc.format(float(label_text)))
-                    if '$' in format_:
-                        non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
-                        text = non_decimal.sub('', label_text)
-                        fc = '${0:.' + str(dec) + 'f}'
-                        formated_data.append(fc.format(float(text)))
-                    if 'int' in format_:
-                        # noinspection
-                        non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
-                        text = non_decimal.sub('', label_text)
-                        formated_data.append(int(text))
-                else:
-                    formated_data = data.copy()
+        original = self[col].copy()
 
-            # reassign formatted text, etc to label
-            if type(col) is str:
-                self[col] = formated_data
-            if type(col) is int:
-                self.iloc[col] = formated_data
-                # self.table_dict[rowname][col]['font'] = (fontname, fontsize, fontstyle)
+        formated_data = []
+        for label_text in original:
+            if format_ is not None:
+                text = string_exp.format_text(dec, format_, label_text)
+                formated_data.append(text)
+                
+        self.column(col, formated_data)
 
-    def format_row(self, row, data=None, format_=None, dec=2,  _isheader=False, fontname='arial', fontstyle='normal',
-            fontsize=10):
+        for lbl in self.label_df[col].values:
+            print('===========================================================')
+            print(self.label_df)
+            lbl[font] = (fontname, fontsize, fontstyle)
+
+    def row_format(self, row, format_=None, dec=2, _isheader=False, fontname='arial', fontstyle='normal',
+                   fontsize=10):
         font = ('arial', 10, 'normal')
 
-        if _isheader:
-            range_start = 0
-        else:
-            range_start = self.index
+        original = self.loc[row].copy()
 
-        for col in range(range_start, self.df.column_count()):
-            if data is not None:
-                data = self.validate_data('row', data)
-                label_text = data[col]  # grab label text from provided data set
-            else:
-                rowname = 'row' + str(row)
-                label_text = self.table_dict[rowname]['text'][col]  # otherwise grab existing label text
-
-            # format accordingly
+        formated_data = []
+        for label_text in original:
             if format_ is not None:
-                if 'float' in format_:
-                    fc = '{0:.' + str(dec) + 'f}'
-                    label_text = fc.format(float(label_text))
-                if '$' in format_:
-                    fc = '${0:.' + str(dec) + 'f}'
-                    label_text = fc.format(float(label_text))
-                if 'int' in format_:
-                    non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
-                    label_text = non_decimal.sub('', label_text)
-                    label_text = int(label_text)
+                text = string_exp.format_text(dec, format_, label_text)
+                formated_data.append(text)
 
-            # reassign text, etc to label
-            rowname = 'row' + str(row)
-            self.table_dict[rowname]['text'][col] = label_text
-            # self.table_dict[rowname][col]['font'] = (fontname, fontsize, fontstyle)
+        self.row(row, formated_data)
 
     def i_column(self, col, data):
         """
@@ -612,11 +600,12 @@ class TableFrame(pd.DataFrame):
 
 
 class ListBoxController(tkinter.Listbox):
-    """creates a list box with specified control elements and a scroll bar"""
+    """creates a list box with specified control buttons and a scroll bar"""
 
     def __init__(self, window, row=0, column=0, sticky='nsew', buttons='+-c', duplicates=False, issorted=True,
                  widget_link=None):
-        """ :param: window:tkinter.Frame type object to contain controller
+        """ 
+            :param: window:tkinter.Frame type object to contain controller
             :param: row:int: row in `window` to add `self.frame`
             :param: col:int: column in `window` to add `self.frame`
             :param: sticky:str: for grid
@@ -627,7 +616,7 @@ class ListBoxController(tkinter.Listbox):
             :param: duplicates:bool: True to allow duplicates in list
             :param: issorted:cool: True if list to be always sorted
             :param: widget_link:tkinter.widget: widget providing information to add to list, must have a .get()
-            """
+        """
         self.frame = tkinter.Frame(window)
         self.frame.grid(row=row, column=column, sticky=sticky)
 
