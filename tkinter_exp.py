@@ -337,7 +337,7 @@ class TableFrame(pd.DataFrame):
         else:
             super().__init__(data=data, index=index, columns=columns)
 
-        self.label_dict = self.to_dict(orient='index')
+        self.label_dict = {}
 
         self.frame = tkinter.Frame(window)
         self.frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
@@ -403,8 +403,8 @@ class TableFrame(pd.DataFrame):
 
     def draw_table(self):
         """Draws df on subframe"""
-        self.sub_frame = clear_subframe(self.frame, self.sub_frame)
 
+        self.sub_frame = clear_subframe(self.frame, self.sub_frame)
         col = 0
         row = 1
         # add index to table
@@ -423,22 +423,20 @@ class TableFrame(pd.DataFrame):
                 self.add_label(row=row, col=col, text=col_label)
                 col += 1
 
-        # add data to table
         col = 0 + self.visible_index
-        for col_label in header_labels:
-            row = 1
-            lbl_list = []
-            for item in self[col_label]:
-                lbl = self.add_label(row=row, col=col, text=item)
-                lbl_list.append(lbl)
+        for col_label in self.columns:
+            row = 0 + self.visible_columns
+            self.label_dict[col_label] = {}
+            for year in self.index.values:
+                text = self[col_label][year]
+                lbl = self.add_label(row=row, col=col, text=text)
+                self.label_dict[col_label][year] = lbl
                 row += 1
-                self.label_dict[]
             col += 1
 
         self.frame.update()
         if True:
             print(self)
-
             print(self.label_dict)
 
     def insert_row(self, row, value, sort=None):
@@ -483,11 +481,9 @@ class TableFrame(pd.DataFrame):
                 formated_data.append(text)
                 
         self.column(col, formated_data)
-
-        for lbl in self.label_df[col].values:
-            print('===========================================================')
-            print(self.label_df)
-            lbl[font] = (fontname, fontsize, fontstyle)
+        print(self.label_dict.keys())
+        #for lbl in self.label_dict[col].values:
+         #   lbl[font] = (fontname, fontsize, fontstyle)
 
     def row_format(self, row, format_=None, dec=2, _isheader=False, fontname='arial', fontstyle='normal',
                    fontsize=10):
