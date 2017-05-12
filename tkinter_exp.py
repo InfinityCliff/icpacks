@@ -337,14 +337,13 @@ class TableFrame(pd.DataFrame):
         else:
             super().__init__(data=data, index=index, columns=columns)
 
-        self.label_dict = {}
+        self._formattting = self._build_formatting()
 
         self.frame = tkinter.Frame(window)
         self.frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
 
         self.visible_columns = True
         self.visible_index = True
-
         self.sub_frame = tkinter.Frame(self.frame)
         self.sub_frame.grid(row=0, column=0, sticky='nsew')
         self.blank_cell = blank
@@ -399,7 +398,23 @@ class TableFrame(pd.DataFrame):
         """
         lbl = tkinter.Label(self.sub_frame, text=text, font=('arial', 10, fontstyle))
         lbl.grid(row=row, column=col, sticky='nsew')
+
         return lbl
+
+    def _label_dict_from_df(self):
+        label_dict = {}
+        col = 0 + self.visible_index
+        for col_label in self.columns:
+            row = 0 + self.visible_columns
+            label_dict[col_label] = {}
+            for year in self.index.values:
+                text = self[col_label][year]
+                label_dict[col_label][year] = tkinter.Label(self.sub_frame, text=text)
+                label_dict[col_label][year].grid(row=row, column=col, sticky='nsew')
+                row += 1
+            col += 1
+
+        return label_dict
 
     def draw_table(self):
         """Draws df on subframe"""
@@ -423,21 +438,20 @@ class TableFrame(pd.DataFrame):
                 self.add_label(row=row, col=col, text=col_label)
                 col += 1
 
+        labels_dict = self._label_dict_from_df()
+
         col = 0 + self.visible_index
         for col_label in self.columns:
             row = 0 + self.visible_columns
-            self.label_dict[col_label] = {}
             for year in self.index.values:
-                text = self[col_label][year]
-                lbl = self.add_label(row=row, col=col, text=text)
-                self.label_dict[col_label][year] = lbl
+                labels_dict[col_label][year]['text'] = self[col_label][year]
+                labels_dict[col_label][year].grid(row=row, column=col, sticky='nsew')
                 row += 1
             col += 1
 
         self.frame.update()
         if True:
             print(self)
-            print(self.label_dict)
 
     def insert_row(self, row, value, sort=None):
         """inserts a row in the table at specified lcoation
@@ -468,10 +482,17 @@ class TableFrame(pd.DataFrame):
         super().insert(loc, column, value, allow_duplicates)
         # self.reindex()
 
-    def column_format(self, col, format_=None, dec=2,  fontname='arial', fontstyle='normal',
-                      fontsize=10):
-        font = ('arial', 10, 'normal')
+    def _build_formatting(self):
+        format_dict = {}
+        for col_label in self.columns:
+            format_dict[col_label] = {}
+            for year in self.index.values:
+                format_dict[col_label][year] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
 
+        return format_dict
+
+    def column_format(self, col, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
+        font = (fontname, fontsize, fontstyle)
         original = self[col].copy()
 
         formated_data = []
@@ -479,11 +500,14 @@ class TableFrame(pd.DataFrame):
             if format_ is not None:
                 text = string_exp.format_text(dec, format_, label_text)
                 formated_data.append(text)
-                
+
         self.column(col, formated_data)
-        print(self.label_dict.keys())
-        #for lbl in self.label_dict[col].values:
-         #   lbl[font] = (fontname, fontsize, fontstyle)
+
+        label_dict = self._label_dict_from_df()
+
+        for column_label, column in label_dict.items():
+            for index, lbl in column.items():
+                lbl['font'] = font
 
     def row_format(self, row, format_=None, dec=2, _isheader=False, fontname='arial', fontstyle='normal',
                    fontsize=10):
