@@ -7,6 +7,7 @@ def format_text(dec, format_, label_text):
         return fc.format(float(label_text))
     if '$' in format_:
         non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
+        print('>>>', label_text)
         text = non_decimal.sub('', label_text)
         fc = '${0:.' + str(dec) + 'f}'
         return fc.format(float(text))

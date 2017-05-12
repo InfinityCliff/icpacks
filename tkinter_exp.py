@@ -443,9 +443,12 @@ class TableFrame(pd.DataFrame):
         col = 0 + self.visible_index
         for col_label in self.columns:
             row = 0 + self.visible_columns
-            for year in self.index.values:
-                labels_dict[col_label][year]['text'] = self[col_label][year]
-                labels_dict[col_label][year].grid(row=row, column=col, sticky='nsew')
+            for index in self.index.values:
+                labels_dict[col_label][index]['text'] = self[col_label][index]
+                labels_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
+                font_dict = self._formattting[col_label][index]
+                labels_dict[col_label][index]['font'] = (font_dict['fontname'], font_dict['fontsize'],
+                                                         font_dict['fontstyle'])
                 row += 1
             col += 1
 
@@ -491,37 +494,21 @@ class TableFrame(pd.DataFrame):
 
         return format_dict
 
-    def column_format(self, col, format_=None, dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
-        font = (fontname, fontsize, fontstyle)
-        original = self[col].copy()
+    def column_format(self, col, format_='', dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
+        #label_dict = self._label_dict_from_df()
 
-        formated_data = []
-        for label_text in original:
-            if format_ is not None:
-                text = string_exp.format_text(dec, format_, label_text)
-                formated_data.append(text)
+        for index, value in self[col].iteritems():
+            text = string_exp.format_text(dec, format_, value)
+            self[col][index] = text
+            self._formattting[col][index] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
 
-        self.column(col, formated_data)
-
-        label_dict = self._label_dict_from_df()
-
-        for column_label, column in label_dict.items():
-            for index, lbl in column.items():
-                lbl['font'] = font
-
-    def row_format(self, row, format_=None, dec=2, _isheader=False, fontname='arial', fontstyle='normal',
+    def row_format(self, row, format_='', dec=2, _isheader=False, fontname='arial', fontstyle='normal',
                    fontsize=10):
-        font = ('arial', 10, 'normal')
-
-        original = self.loc[row].copy()
-
-        formated_data = []
-        for label_text in original:
-            if format_ is not None:
-                text = string_exp.format_text(dec, format_, label_text)
-                formated_data.append(text)
-
-        self.row(row, formated_data)
+        for column in self.columns:
+            text = self[column][row]
+            print('>>', text)
+            self[column][row] = string_exp.format_text(dec, format_, text)
+            self._formattting[column][row] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
 
     def i_column(self, col, data):
         """
