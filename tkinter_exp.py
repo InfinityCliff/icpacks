@@ -321,31 +321,56 @@ class TableFrame(pd.DataFrame):
                 2013      10  11  12    13
                 2014      00  01  02    03     
         """
+        frame = tkinter.Frame(window)
+        frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
+
+        sub_frame = tkinter.Frame(frame)
+        sub_frame.grid(row=0, column=0, sticky='nsew')
+
         if type(data) is pd.DataFrame:
+            super_df = data.copy()
             if index is None:
-                index = data.index.values
+                index = super_df.index.values
             if columns is None:
-                columns = data.columns
-            super().__init__(data=data)
-            self.rename(columns=dict(zip(data.columns, columns)), inplace=True)
-            self.index = index
-        elif type(data) is dict:
-            df = pd.DataFrame.from_dict(data=data, orient=orient)
-            super().__init__(data=df)
-            self.rename(columns=dict(zip(df.columns, columns)), inplace=True)
-
+                columns = super_df.columns
+            # super().__init__(data=data)
+            # df.rename(columns=dict(zip(data.columns, columns)), inplace=True)
+            # df.index = index
+            # self.rename(columns=dict(zip(data.columns, columns)), inplace=True)
+            # self.index = index
         else:
-            super().__init__(data=data, index=index, columns=columns)
+            # elif type(data) is dict:
+            super_df = pd.DataFrame.from_dict(data=data, orient='index')
+            super_df.rename(columns=dict(zip(super_df.columns, columns)), inplace=True)
+            # self.rename(columns=dict(zip(df.columns, columns)), inplace=True)
+        # else:
+            # super().__init__(data=data, index=index, columns=columns)
 
-        self._formattting = self._build_formatting()
+        index, width = super_df.shape  # index x column
+        default_font = ('arial', 12, 'normal')
 
-        self.frame = tkinter.Frame(window)
-        self.frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
+        super_dict = {}
+        for index in super_df.index.values:
+            tup = ()
+            for column in super_df.columns:
+                tup = tup + ({'data': super_df[column][index],
+                              'lbl': tkinter.Label(sub_frame, text=super_df[column][index]),
+                              'font': default_font}, )
+            super_dict[index] = tup
+        super_df = pd.DataFrame.from_dict(super_dict, orient='index')
+        super_df.columns = columns
+        super().__init__(data=super_df)
+
+        self.default_font = default_font
+
+        self.frame = frame
+        self.sub_frame = sub_frame
+        self.cur_lbl = None
+
+        self._formattting = {'index': {'font': self.default_font}, 'column': {'font': self.default_font}}
 
         self.visible_columns = True
         self.visible_index = True
-        self.sub_frame = tkinter.Frame(self.frame)
-        self.sub_frame.grid(row=0, column=0, sticky='nsew')
         self.blank_cell = blank
 
     def update(self, other, join='left', overwrite=True, filter_func=None, raise_conflict=False):
@@ -401,44 +426,18 @@ class TableFrame(pd.DataFrame):
 
         return lbl
 
-    def _label_dict_from_df(self):
-        label_dict = {}
-        label_dict['index'] = {}
-        label_dict['columns'] = {}
-
-        col = 0 + self.visible_index
-        for col_label in self.columns:
-            row = 0 + self.visible_columns
-            label_dict[col_label] = {}
-            label_dict['columns'][col_label] = tkinter.Label(self.sub_frame, text=col_label)
-            label_dict['columns'][col_label].grid(row=0, column=col, sticky='nsew')
-            for index in self.index.values:
-                label_dict['index'][row] = tkinter.Label(self.sub_frame, text=index)
-                label_dict['index'][row].grid(row=row, column=0, sticky='nsew')
-                text = self[col_label][index]
-                label_dict[col_label][index] = tkinter.Label(self.sub_frame, text=text)
-                label_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
-                row += 1
-            col += 1
-
-        return label_dict
-
     def draw_table(self):
         """Draws df on subframe"""
         self.sub_frame = clear_subframe(self.frame, self.sub_frame)
 
-        labels_dict = self._label_dict_from_df()
         col = 0
         row = 1
         # add index to table
         if self.visible_index:
-            # index_labels = list(self.index.tolist())
             font_dict = self._formattting['index']
             for item in list(self.index.tolist()):
-                labels_dict['index'][row]['text'] = item
-                labels_dict['index'][row]['font'] = (font_dict['fontname'], font_dict['fontsize'],
-                                                     font_dict['fontstyle'])
-                # self.add_label(row=row, col=col, text=item)
+                lbl = tkinter.Label(self.sub_frame, text=item, font=self._formattting['index']['font'])
+                lbl.grid(row=row, column=col, sticky='nsew')
                 row += 1
             col += 1
 
@@ -446,31 +445,19 @@ class TableFrame(pd.DataFrame):
         header_labels = list(self)
         row = 0
         if self.visible_columns:
-            font_dict = self._formattting['header']
             for col_label in header_labels:
-                labels_dict['columns'][col_label]['font'] = (font_dict['fontname'], font_dict['fontsize'],
-                                                             font_dict['fontstyle'])
-                # self.add_label(row=row, col=col, text=col_label)
+                lbl = tkinter.Label(self.sub_frame, text=col_label, font=self._formattting['column']['font'])
+                lbl.grid(row=row, column=col, sticky='nsew')
                 col += 1
-
 
         col = 0 + self.visible_index
         for col_label in self.columns:
-            # print('c', col)
             row = 0 + self.visible_columns
             for index in self.index.values:
-                # print('r', row)
-                # labels_dict[col_label][index]['text'] = self[col_label][index]
-                # labels_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
-                if row == 0:
-                    font_dict = self._formattting['header']
-                elif col == 0:
-                    font_dict = self._formattting['index']
-                else:
-                    font_dict = self._formattting[col_label][index]
-                # print(labels_dict[col_label][index]['text'])
-                labels_dict[col_label][index]['font'] = (font_dict['fontname'], font_dict['fontsize'],
-                                                         font_dict['fontstyle'])
+                self[col_label][index]['lbl'] = tkinter.Label(self.sub_frame,
+                                                              text=self[col_label][index]['data'],
+                                                              font=self[col_label][index]['font'])\
+                    .grid(row=row, column=col, sticky='nsew')
                 row += 1
             col += 1
 
@@ -506,21 +493,13 @@ class TableFrame(pd.DataFrame):
         super().insert(loc, column, value, allow_duplicates)
         # self.reindex()
 
-    def _build_formatting(self):
-        format_dict = {}
-        for col_label in self.columns:
-            format_dict[col_label] = {}
-            for year in self.index.values:
-                format_dict[col_label][year] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
-        format_dict['index'] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
-        format_dict['header'] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
-        return format_dict
-
     def column_format(self, col, format_='', dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
         for index, value in self[col].iteritems():
             text = string_exp.format_text(dec, format_, value)
-            self.loc[index, col] = text
-            self._formattting[col][index] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
+            for i in range(len(self[col])):
+                self.loc[i, col]['data'] = text
+            #self.[col][index]['']
+            #self._formattting[col][index] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}#
 
     def header_format(self, format_='', dec=2, fontname='arial', fontstyle='normal', fontsize=10):
         for header in self.columns:
@@ -563,11 +542,13 @@ class TableFrame(pd.DataFrame):
         while len(data) < len(self):
             data.append(self.blank_cell)
 
-        self[col] = data
+        iter_data = iter(data)
+        for index, v in self.iterrows():
+            v[col]['data'] = next(iter_data)
 
     def i_row(self, row, data):
         """
-        
+        Replaces specified row (index) with proivded data
         :param row:int: row index
         :param data: data to replace in row, must be same length as number of columns, if data is longer then end of
                 list will be truncated, if shorter blank items will be appended to end 
@@ -578,11 +559,11 @@ class TableFrame(pd.DataFrame):
         while len(data) < len(self.columns):
             data.append(self.blank_cell)
 
-        self.iloc[row] = data
+        print(self.iloc[row:, ])
 
     def row(self, row, data):
         """
-        
+        Replaces specified row (label) with proivded data
         :param row:str: index label
         :param data: data to replace in row, must be same length as number of columns, if data is longer then end of
                 list will be truncated, if shorter blank items will be appended to end 
@@ -593,7 +574,9 @@ class TableFrame(pd.DataFrame):
         while len(data) < len(self.columns):
             data.append(self.blank_cell)
 
-        self.loc[row] = data
+        iter_data = iter(data)
+        for c, v in self.iteritems():
+            v[row]['data'] = next(iter_data)
 
     def row_rename(self):
         # TODO develop method
