@@ -37,8 +37,16 @@ table.draw_table()
 table.column_format('Min', fontstyle='bold', format_='float')
 table.draw_table()
 
-table.row_format(2009, fontstyle='bold', format_='$')
-table.draw_table()
+#table.row_format(2009, fontstyle='bold', format_='$')
+#table.draw_table()
+#table.header_format(fontstyle='bold', fontsize=16)
+#table.draw_table()
+
+for r in table._formattting.items():
+    print(r)
+print()
+for r, v in table._label_dict_from_df().items():
+    print(r, v)
 
 main.mainloop()
 

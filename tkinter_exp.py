@@ -403,14 +403,21 @@ class TableFrame(pd.DataFrame):
 
     def _label_dict_from_df(self):
         label_dict = {}
+        label_dict['index'] = {}
+        label_dict['columns'] = {}
+
         col = 0 + self.visible_index
         for col_label in self.columns:
             row = 0 + self.visible_columns
             label_dict[col_label] = {}
-            for year in self.index.values:
-                text = self[col_label][year]
-                label_dict[col_label][year] = tkinter.Label(self.sub_frame, text=text)
-                label_dict[col_label][year].grid(row=row, column=col, sticky='nsew')
+            label_dict['columns'][col_label] = tkinter.Label(self.sub_frame, text=col_label)
+            label_dict['columns'][col_label].grid(row=0, column=col, sticky='nsew')
+            for index in self.index.values:
+                label_dict['index'][row] = tkinter.Label(self.sub_frame, text=index)
+                label_dict['index'][row].grid(row=row, column=0, sticky='nsew')
+                text = self[col_label][index]
+                label_dict[col_label][index] = tkinter.Label(self.sub_frame, text=text)
+                label_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
                 row += 1
             col += 1
 
@@ -418,15 +425,20 @@ class TableFrame(pd.DataFrame):
 
     def draw_table(self):
         """Draws df on subframe"""
-
         self.sub_frame = clear_subframe(self.frame, self.sub_frame)
+
+        labels_dict = self._label_dict_from_df()
         col = 0
         row = 1
         # add index to table
         if self.visible_index:
             # index_labels = list(self.index.tolist())
+            font_dict = self._formattting['index']
             for item in list(self.index.tolist()):
-                self.add_label(row=row, col=col, text=item)
+                labels_dict['index'][row]['text'] = item
+                labels_dict['index'][row]['font'] = (font_dict['fontname'], font_dict['fontsize'],
+                                                     font_dict['fontstyle'])
+                # self.add_label(row=row, col=col, text=item)
                 row += 1
             col += 1
 
@@ -434,27 +446,36 @@ class TableFrame(pd.DataFrame):
         header_labels = list(self)
         row = 0
         if self.visible_columns:
+            font_dict = self._formattting['header']
             for col_label in header_labels:
-                self.add_label(row=row, col=col, text=col_label)
+                labels_dict['columns'][col_label]['font'] = (font_dict['fontname'], font_dict['fontsize'],
+                                                             font_dict['fontstyle'])
+                # self.add_label(row=row, col=col, text=col_label)
                 col += 1
 
-        labels_dict = self._label_dict_from_df()
 
         col = 0 + self.visible_index
         for col_label in self.columns:
+            # print('c', col)
             row = 0 + self.visible_columns
             for index in self.index.values:
-                labels_dict[col_label][index]['text'] = self[col_label][index]
-                labels_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
-                font_dict = self._formattting[col_label][index]
+                # print('r', row)
+                # labels_dict[col_label][index]['text'] = self[col_label][index]
+                # labels_dict[col_label][index].grid(row=row, column=col, sticky='nsew')
+                if row == 0:
+                    font_dict = self._formattting['header']
+                elif col == 0:
+                    font_dict = self._formattting['index']
+                else:
+                    font_dict = self._formattting[col_label][index]
+                # print(labels_dict[col_label][index]['text'])
                 labels_dict[col_label][index]['font'] = (font_dict['fontname'], font_dict['fontsize'],
                                                          font_dict['fontstyle'])
                 row += 1
             col += 1
 
         self.frame.update()
-        if True:
-            print(self)
+        # print(self)
 
     def insert_row(self, row, value, sort=None):
         """inserts a row in the table at specified lcoation
@@ -491,23 +512,25 @@ class TableFrame(pd.DataFrame):
             format_dict[col_label] = {}
             for year in self.index.values:
                 format_dict[col_label][year] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
-
+        format_dict['index'] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
+        format_dict['header'] = {'fontname': 'arial', 'fontsize': 10, 'fontstyle': 'normal'}
         return format_dict
 
     def column_format(self, col, format_='', dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
-        #label_dict = self._label_dict_from_df()
-
         for index, value in self[col].iteritems():
             text = string_exp.format_text(dec, format_, value)
-            self[col][index] = text
+            self.loc[index, col] = text
             self._formattting[col][index] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
 
-    def row_format(self, row, format_='', dec=2, _isheader=False, fontname='arial', fontstyle='normal',
-                   fontsize=10):
+    def header_format(self, format_='', dec=2, fontname='arial', fontstyle='normal', fontsize=10):
+        for header in self.columns:
+            self.rename(columns={header: string_exp.format_text(dec, format_, header)})
+            self._formattting['header'] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
+
+    def row_format(self, row, format_='', dec=2, fontname='arial', fontstyle='normal', fontsize=10):
         for column in self.columns:
             text = self[column][row]
-            print('>>', text)
-            self[column][row] = string_exp.format_text(dec, format_, text)
+            self.loc[row, column] = string_exp.format_text(dec, format_, text)
             self._formattting[column][row] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
 
     def i_column(self, col, data):
@@ -579,31 +602,6 @@ class TableFrame(pd.DataFrame):
     def column_rename(self):
         # TODO develop method
         pass
-
-    def _apply_format(self, text, colrow, where, ordinal1, ordinal2, ordinal_prime, format_code, num_type):
-        """apply formating to label text
-        
-            :param: text:str: string to be formateed
-            :param: colrow:str: indicator for column or row to be formated, shoould be 'col' or 'row'
-            :param: where:tuple: which data set to detrmine if formatting has been specified
-            :param: ordinal1:int: column or row being evaluated
-            :param: ordinal2:int: used in determienation of current row/colum evaluation so formatiing not applied 
-                    to header and index labels
-            :param: ordinal_prime:bool: used to determine if header or index, as nuber formatting is not applied to
-                    header and index labels 
-            :param: format_code:str, .format like: formatting to apply
-            :param: num_type: class: converts text to number before applying format
-        """
-        result = text  # default if no conditions below are true
-        non_decimal = re.compile(r'[^\d.]+')  # regex to strip off non number info
-        text = non_decimal.sub('', text)  # strip off non numbers
-
-        if colrow + str(ordinal1) in where:  # if the column or row, 'col1' -- 'row1', etc is in data set
-            # ensure formatting not applied to header and index labels
-            if (ordinal_prime and ordinal2 > 0) or (not ordinal_prime):
-                result = format_code.format(num_type(text))  # apply formatting
-
-        return result
 
 
 class ListBoxController(tkinter.Listbox):
