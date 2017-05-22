@@ -347,7 +347,7 @@ class TableFrame(pd.DataFrame):
             # super().__init__(data=data, index=index, columns=columns)
 
         index, width = super_df.shape  # index x column
-        default_font = ('arial', 12, 'normal')
+        default_font = ('arial', 10, 'normal')
 
         super_dict = {}
         for index in super_df.index.values:
@@ -367,7 +367,7 @@ class TableFrame(pd.DataFrame):
         self.sub_frame = sub_frame
         self.cur_lbl = None
 
-        self._formattting = {'index': {'font': self.default_font}, 'column': {'font': self.default_font}}
+        self._formattting = {'index': {'font': self.default_font}, 'header': {'font': self.default_font}}
 
         self.visible_columns = True
         self.visible_index = True
@@ -408,10 +408,6 @@ class TableFrame(pd.DataFrame):
         """send true to hide column labels, false to show"""
         self.visible_columns = val
 
-    def default_col(self, rows):
-        """ returns a list of blank 'rows' """
-        return [self.blank_cell] * rows
-
     def add_label(self, row, col, text, fontstyle='normal'):
         """Adds label to subframe
         
@@ -427,14 +423,13 @@ class TableFrame(pd.DataFrame):
         return lbl
 
     def draw_table(self):
-        """Draws df on subframe"""
+        """Draws data on subframe"""
         self.sub_frame = clear_subframe(self.frame, self.sub_frame)
 
         col = 0
         row = 1
         # add index to table
         if self.visible_index:
-            font_dict = self._formattting['index']
             for item in list(self.index.tolist()):
                 lbl = tkinter.Label(self.sub_frame, text=item, font=self._formattting['index']['font'])
                 lbl.grid(row=row, column=col, sticky='nsew')
@@ -446,7 +441,7 @@ class TableFrame(pd.DataFrame):
         row = 0
         if self.visible_columns:
             for col_label in header_labels:
-                lbl = tkinter.Label(self.sub_frame, text=col_label, font=self._formattting['column']['font'])
+                lbl = tkinter.Label(self.sub_frame, text=col_label, font=self._formattting['header']['font'])
                 lbl.grid(row=row, column=col, sticky='nsew')
                 col += 1
 
@@ -493,24 +488,82 @@ class TableFrame(pd.DataFrame):
         super().insert(loc, column, value, allow_duplicates)
         # self.reindex()
 
-    def column_format(self, col, format_='', dec=2,  fontname='arial', fontstyle='normal', fontsize=10):
-        for index, value in self[col].iteritems():
-            text = string_exp.format_text(dec, format_, value)
-            for i in range(len(self[col])):
-                self.loc[i, col]['data'] = text
-            #self.[col][index]['']
-            #self._formattting[col][index] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}#
+    def column_format(self, col, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
+        for index, value_dict in self[col].iteritems():
+            text = string_exp.format_text(dec, format_, value_dict['data'])
+            value_dict['data'] = text
+            font_tup = ()
+            if fontname is not None:
+                font_tup = font_tup + (fontname, )
+            else:
+                font_tup = font_tup + (value_dict['font'][0], )
+            if fontsize is not None:
+                font_tup = font_tup + (fontsize, )
+            else:
+                font_tup = font_tup + (value_dict['font'][1], )
+            if fontstyle is not None:
+                font_tup = font_tup + (fontstyle, )
+            else:
+                font_tup = font_tup + (value_dict['font'][2], )
 
-    def header_format(self, format_='', dec=2, fontname='arial', fontstyle='normal', fontsize=10):
+            value_dict['font'] = font_tup
+
+    def header_format(self, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
         for header in self.columns:
             self.rename(columns={header: string_exp.format_text(dec, format_, header)})
-            self._formattting['header'] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
+            font_tup = ()
+            if fontname is not None:
+                font_tup = font_tup + (fontname, )
+            else:
+                font_tup = font_tup + (self._formattting['header']['font'][0], )
+            if fontsize is not None:
+                font_tup = font_tup + (fontsize, )
+            else:
+                font_tup = font_tup + (self._formattting['header']['font'][1], )
+            if fontstyle is not None:
+                font_tup = font_tup + (fontstyle, )
+            else:
+                font_tup = font_tup + (self._formattting['header']['font'][2], )
 
-    def row_format(self, row, format_='', dec=2, fontname='arial', fontstyle='normal', fontsize=10):
-        for column in self.columns:
-            text = self[column][row]
-            self.loc[row, column] = string_exp.format_text(dec, format_, text)
-            self._formattting[column][row] = {'fontname': fontname, 'fontsize': fontsize, 'fontstyle': fontstyle}
+            self._formattting['header']['font'] = font_tup
+
+    def index_format(self, fontname=None, fontsize=None, fontstyle=None):
+        font_tup = ()
+        if fontname is not None:
+            font_tup = font_tup + (fontname, )
+        else:
+            font_tup = font_tup + (self._formattting['header']['font'][0], )
+        if fontsize is not None:
+            font_tup = font_tup + (fontsize, )
+        else:
+            font_tup = font_tup + (self._formattting['header']['font'][1], )
+        if fontstyle is not None:
+            font_tup = font_tup + (fontstyle, )
+        else:
+            font_tup = font_tup + (self._formattting['header']['font'][2], )
+
+        self._formattting['index']['font'] = font_tup
+
+    def row_format(self, row, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
+        row_dict = self.loc[row]
+        for value_dict in row_dict:
+            text = string_exp.format_text(dec, format_, value_dict['data'])
+            value_dict['data'] = text
+            font_tup = ()
+            if fontname is not None:
+                font_tup = font_tup + (fontname, )
+            else:
+                font_tup = font_tup + (value_dict['font'][0], )
+            if fontsize is not None:
+                font_tup = font_tup + (fontsize, )
+            else:
+                font_tup = font_tup + (value_dict['font'][1], )
+            if fontstyle is not None:
+                font_tup = font_tup + (fontstyle, )
+            else:
+                font_tup = font_tup + (value_dict['font'][2], )
+
+            value_dict['font'] = font_tup
 
     def i_column(self, col, data):
         """
@@ -559,7 +612,7 @@ class TableFrame(pd.DataFrame):
         while len(data) < len(self.columns):
             data.append(self.blank_cell)
 
-        print(self.iloc[row:, ])
+        #print(self.iloc[row:, ])
 
     def row(self, row, data):
         """

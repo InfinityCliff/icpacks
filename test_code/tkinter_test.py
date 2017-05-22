@@ -14,8 +14,8 @@ ent.grid(row=0, column=0, sticky='nsew')
 # lbl['font'] = ('arial', 24, 'bold')
 
 
-print('------------------------------------------')
-print('From dict:')
+#print('------------------------------------------')
+#print('From dict:')
 
 
 data_dict = {2014: ['00', '01', '02', '03'],
@@ -27,21 +27,21 @@ data_dict = {2014: ['00', '01', '02', '03'],
 
 table = tkinter_exp.TableFrame(main, row=4, data=data_dict, orient='index', columns=['Average', 'Min', 'Max', 'Count'])
 print(table)
-print('-------------------------------------------------')
+#print('-------------------------------------------------')
 table.row(2014, [12, 12, 12, 12, 12, 12])
 #table.i_row(2014, [13, 13, 13, 13, 13, 13])
 table.column('Average', [10, 10, 10])
-table.column_format('Average', 'float')
-# table.column_format('Min', '$')
-# table.column_format('Max', 'int')
-table.draw_table()
-# table.row_format(2014, 'float')
-#table.column_format('Min', fontstyle='bold', format_='float')
-#table.draw_table()
+table.column_format('Average', format_='float', fontstyle='bold')
+table.column_format('Min', format_='$')
+table.column_format('Count', format_='int')
 
-#table.row_format(2009, fontstyle='bold', format_='$')
-#table.draw_table()
-#table.header_format(fontstyle='bold', fontsize=16)
+table.draw_table()
+
+table.row_format(2014, format_='float', fontstyle='bold')
+
+table.header_format(fontstyle='bold', fontsize=12)
+table.index_format(fontstyle='bold', fontsize=12)
+
 table.draw_table()
 
 main.mainloop()
