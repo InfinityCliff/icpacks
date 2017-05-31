@@ -1,20 +1,29 @@
 """
-Module: tkinter_exp
+**ictkinter**
 
-Methods:
-    icon: returns image for use in menu icons
-    image_to_canvas: place graph image on canvas, and place canvas in subframe
-    create_menu: creates a menu from the provided dict in the provided window
-    create_sub_menu: returns sub menu to add to menu cascade
-    clear_subframe: clears and recreates subframe
-    populate_list_box: populates a list box in the GUI with the data provided
-    add_price_data -----------------------may want to delete this as the table takes care of this
+**Functions:**
+icon**
+        returns image for use in menu icons
+image_to_canvas**
+        place graph image on canvas, and place canvas in subframe
+create_menu**
+        creates a menu from the provided dict in the provided window
+create_sub_menu**
+        returns sub menu to add to menu cascade
+clear_subframe**
+        clears and recreates subframe
+populate_list_box**
+        populates a list box in the GUI with the data provided
 
-class:
-    TableFrame: creates a Dataframe linked to a tkinter frame
-    ListBoxController: creates a list box with specified control elements and a scroll bar
-    ScrollFrame: creates a canvas with scroll bar
-    CreateToolTip: create a tooltip for a given widget
+**class:**
+TableFrame**
+        creates a Dataframe linked to a tkinter frame
+ListBoxController**
+        creates a list box with specified control elements and a scroll bar
+ScrollFrame**
+        creates a canvas with scroll bar
+CreateToolTip**
+        create a tooltip for a given widget
 """
 
 import tkinter
@@ -23,7 +32,7 @@ from PIL import ImageTk, Image
 import re
 import numpy as np
 import pandas as pd
-import string_exp
+import icstring
 
 icons = {'bookmark': 'add_bookmark.png',
          'clear': 'clear.png',
@@ -159,167 +168,172 @@ def populate_list_box(listbox, data, select='keys'):
         listbox.insert(tkinter.END, item)
 
 
-# TODO add format option for columns, maybe dict of {col name : string.format sequence}
-def add_price_data(frame, subframe, data, col_order=None, col_titles=None, row=0, column=0, sub_sticky='nsew',
-                   table_sticky='ew', headerfont=('arial', 10, 'bold'), tablefont=('arial', 10)):
-    """takes data provided (DataFrame) and displays it in a table in a subframe
-    Uses index as frist column
-    
-        :param frame:tkinter.Frame or Labelframe: main frame
-        :param subframe:tkinter.Frame : subframe to be cleared
-        :param data:pandas.DataFrame: data to be displayed
-        :param col_order:list: use to set order of columns or exclude columns from table, only provided will be
-            returned.  
-        :param col_titles:list: Title for column to use in table
-        :param row:int: grid row
-        :param column:int: grid column
-        :param sub_sticky:str: grid sticky for subframe
-        :param table_sticky:str: grid sticky for table labels
-        :param headerfont:tuple: font for text in header
-        :param tablefont:tuple: font for text in table
-    """
-    # determine DataFrame column names
-    if col_order is None:
-        col_order = list(data)
-
-    if col_titles is None:
-        col_titles = col_order
-
-    subframe.destroy()
-    subframe = tkinter.Frame(frame)
-    subframe.grid(row=row, column=column, columnspan=len(col_order), sticky=sub_sticky)
-
-    row = 0
-    column = 0
-    for name in col_order:
-        tkinter.Label(subframe, text=col_titles[column], font=headerfont)\
-            .grid(row=row, column=column, sticky=table_sticky)  # add label
-        if column == 0:
-            col_data = data.index
-        else:
-            col_data = data[name]
-
-        for data_row in col_data:
-            row += 1
-            tkinter.Label(subframe, text=data_row, font=tablefont)\
-                .grid(row=row, column=column, sticky=table_sticky)  # add data
-        row = 0
-        column += 1
-
-    return subframe
-
-
 class TableFrame(pd.DataFrame):
-
+    """
+    Create a table of tkinter.Label or tkinter.Button objects
+    
+    Usage notes:
+        - after creating or altering the dataframe, need to call `show` to display changes in tkinter window
+        - to change column data: 
+            t3['Average'] = [12, 12, 12, 12, 12, 12]
+                    is equivalent to
+            t3.column('Average', [13, 13, 13, 13, 13, 13])
+                    as self is derived from pd.DataFrame    
+                    
+    **METHODS:**
+    
+    **update** : Replaces data in table, does not alter index or column labels
+        
+    **hide_index** : send true to hide index column, false to show
+        
+    **hide_columns** : send true to hide column labels, false to show
+        
+    **add_label** : Adds label to subframe
+        
+    **show** : Display data table on subframe.
+        
+    **insert_row** : Inserts a row in the table at specified location
+        
+    **insert** : Inserts a column in the table at specified location
+    
+    **column_format** : Formats column in the table
+    
+    **header_format** : Formats the header (column titles)
+    
+    **index_format** : Formats the index column
+    
+    **row_format** : Formats row in the table
+    
+    **i_column** : Replaces specified column (index) with provided data
+    
+    **column** : Replaces specified column (label) with provided data
+     
+    **i_row** : Replaces specified row (index) with provided data
+    
+    **row** : Replaces specified row (label) with provided data
+    
+    **row_rename** : Rename row index  --*UNDER CONSTRUCTION*--
+    
+    **column_rename** : Rename column  --*UNDER CONSTRUCTION*-- 
+    
+    Parameters
+    ----------  
+    -- General parameters:             
+    window : tkinter.Frame
+        container for TableFrame
+            
+    -- Dataframe parameters:
+    data : dict, list, or df
+        data to be put in TableFrame
+    index : list
+        row labels (df index)
+    column : list
+        columns labels (df columns)
+    orient : str
+        The "orientation" of the data. If the keys of the passed dict
+        should be the columns of the resulting DataFrame, pass 'columns'
+        (default). Otherwise if the keys should be rows, pass 'index'.
+                
+    -- tkinter parameters:
+    row : int
+        row in window
+    column : int
+        column in window
+    sticky : str
+        tkinter.Frame resource
+    columnspan : int
+        columnspan in window
+            
+    -- formatting parameters:
+    bold : tuple
+        columns or rows to be bolded, 0 indexed with or without index/headers.
+        Designate by: ('col0, 'col2', 'row1')
+    currency : str 
+        columns or rows to be formatted as currency '$0.00', 0 indexed with or without 
+        index/headers.  Designate by: ('col0, 'col2', 'row1')
+    float_ : str
+        columns or rows to be formatted as float '0.00', 0 indexed with or without index/headers.
+        Designate by: ('col0, 'col2', 'row1') # TODO be able to set precision
+    int_ : str
+        columns or rows to be formatted as int '0', 0 indexed with or without index/headers.
+        Designate by: ('col0, 'col2', 'row1')  # TODO not working, need to code
+          
+                
+    
+    
+    **=EXAMPLES===============================================================**
+        print('------------------------------------------')
+        print('From composite lists:')
+        
+        data_lst = [['00', '01', '02', '03'],
+                    ['10', '11', '12', '13'],
+                    ['20', '21', '22', '23'],
+                    ['30', '31', '32', '33'],
+                    ['40', '41', '42', '43'],
+                    ['50', '51', '52', '53']]
+        
+        t1 = tkinter_exp.TableFrame(main, row=2, data=data_lst,
+                                    index=[2014, 2013, 2012, 2011, 2010, 2009],
+                                    columns=['Average', 'Min', 'Max', 'Count'])
+        t1.draw_table()
+        
+        print('------------------------------------------')
+        print('From DataFrame:')
+        
+        data_array = np.array([np.arange(6)]*4).T
+        data_df = pd.DataFrame(data_array)
+        t2 = tkinter_exp.TableFrame(main, row=3, data=data_df,
+                                    index=[2014, 2013, 2012, 2011, 2010, 2009],
+                                    columns=['Average', 'Min', 'Max', 'Count'])
+        t2.draw_table()
+        
+        print('------------------------------------------')
+        print('From dict:')
+        
+        data_dict = {2014: ['00', '01', '02', '03'],
+                     2013: ['10', '11', '12', '13'],
+                     2012: ['20', '21', '22', '23'],
+                     2011: ['30', '31', '32', '33'],
+                     2010: ['40', '41', '42', '43'],
+                     2009: ['50', '51', '52', '53']}
+        t3 = tkinter_exp.TableFrame(main, row=4, data=data_dict, orient='index', columns=['Average', 'Min',
+                                    'Max', 'Count'])
+        t3.draw_table() 
+      
+    **=RESULTS================================================================**
+        ------------------------------------------
+        From composite lists:
+             Average Min Max Count
+        2014      00  01  02    03
+        2013      10  11  12    13
+        2012      20  21  22    23
+        2011      30  31  32    33
+        2010      40  41  42    43
+        2009      50  51  52    53
+        ------------------------------------------
+        From DataFrame:
+              Average  Min  Max  Count
+        2014        0    0    0      0
+        2013        1    1    1      1
+        2012        2    2    2      2
+        2011        3    3    3      3
+        2010        4    4    4      4
+        2009        5    5    5      5
+        ------------------------------------------
+        From dict:
+             Average Min Max Count
+        2009      50  51  52    53
+        2010      40  41  42    43
+        2011      30  31  32    33
+        2012      20  21  22    23
+        2013      10  11  12    13
+        2014      00  01  02    03 
+    """
     def __init__(self, window, data=None, index=None, columns=None, orient='columns',
                  row=0, column=0, sticky='nsew', columnspan=1,
                  bold=None, currency=None, float_=None, int_=None, blank='--'):
-        """creates a Dataframe linked to a tkinter frame
-        
-            :param: window:tkinter.Frame|Labelframe: containter for TableFrame
-            
-            -- Dataframe parameters:
-            :param: data:dict, list, of df: data to be put in TableFrame
-            :param: index:list: row labels (df index)
-            :param: column:list: columns labels (df columns)
-            :param: orient:str: The "orientation" of the data. If the keys of the passed dict
-                    should be the columns of the resulting DataFrame, pass 'columns'
-                    (default). Otherwise if the keys should be rows, pass 'index'.
-                    
-            -- tkinter parameters:
-            :param: row:int: row in window
-            :param: column:int: column in window
-            :param: sticky:str: tkinter.Frame resource
-            :param: columnspan:int: columnspan in window
-            
-            -- formatting parameters:
-            :param: bold:tuple: columns or rows to be bolded, 0 indexed with or without index/headers.
-                    Designate by: ('col0, 'col2', 'row1')
-            :param: currency: columns or rows to be formated as currency '$0.00', 0 indexed with or without 
-                    index/headers.  Designate by: ('col0, 'col2', 'row1')
-            :param: float_: columns or rows to be formated as float '0.00', 0 indexed with or without index/headers.
-                    Designate by: ('col0, 'col2', 'row1') # TODO be able to set precision
-            :param: int: columns or rows to be formated as int '0', 0 indexed with or without index/headers.
-                    Designate by: ('col0, 'col2', 'row1')  # TODO not working, need to code
-        Methods:
-            TODO ADD-------------------------------
-            
-            
-        Usage notes:
-            - after createing or altering the datafrme, need to call <draw_table> to display changes in tkinter window
-            - to change column data: 
-                t3['Average'] = [12, 12, 12, 12, 12, 12]
-                        is equivalent to
-                t3.column('Average', [13, 13, 13, 13, 13, 13])
-                        as self is derived from pd.DataFrame
-                        
-        =EXAMPLES============================================================================
-                print('------------------------------------------')
-                print('From composite lists:')
-                
-                data_lst = [['00', '01', '02', '03'],
-                            ['10', '11', '12', '13'],
-                            ['20', '21', '22', '23'],
-                            ['30', '31', '32', '33'],
-                            ['40', '41', '42', '43'],
-                            ['50', '51', '52', '53']]
-                
-                t1 = tkinter_exp.TableFrame(main, row=2, data=data_lst,
-                                            index=[2014, 2013, 2012, 2011, 2010, 2009],
-                                            columns=['Average', 'Min', 'Max', 'Count'])
-                t1.draw_table()
-                
-                print('------------------------------------------')
-                print('From DataFrame:')
-                
-                data_array = np.array([np.arange(6)]*4).T
-                data_df = pd.DataFrame(data_array)
-                t2 = tkinter_exp.TableFrame(main, row=3, data=data_df,
-                                            index=[2014, 2013, 2012, 2011, 2010, 2009],
-                                            columns=['Average', 'Min', 'Max', 'Count'])
-                t2.draw_table()
-                
-                print('------------------------------------------')
-                print('From dict:')
-                
-                data_dict = {2014: ['00', '01', '02', '03'],
-                             2013: ['10', '11', '12', '13'],
-                             2012: ['20', '21', '22', '23'],
-                             2011: ['30', '31', '32', '33'],
-                             2010: ['40', '41', '42', '43'],
-                             2009: ['50', '51', '52', '53']}
-                t3 = tkinter_exp.TableFrame(main, row=4, data=data_dict, orient='index', columns=['Average', 'Min',
-                                            'Max', 'Count'])
-                t3.draw_table() 
-                
-        =RESULTS=============================================================================
-                ------------------------------------------
-                From composite lists:
-                     Average Min Max Count
-                2014      00  01  02    03
-                2013      10  11  12    13
-                2012      20  21  22    23
-                2011      30  31  32    33
-                2010      40  41  42    43
-                2009      50  51  52    53
-                ------------------------------------------
-                From DataFrame:
-                      Average  Min  Max  Count
-                2014        0    0    0      0
-                2013        1    1    1      1
-                2012        2    2    2      2
-                2011        3    3    3      3
-                2010        4    4    4      4
-                2009        5    5    5      5
-                ------------------------------------------
-                From dict:
-                     Average Min Max Count
-                2009      50  51  52    53
-                2010      40  41  42    43
-                2011      30  31  32    33
-                2012      20  21  22    23
-                2013      10  11  12    13
-                2014      00  01  02    03     
+        """
+        creates a Dataframe linked to a tkinter frame
         """
         frame = tkinter.Frame(window)
         frame.grid(row=row, column=column, sticky=sticky, columnspan=columnspan)
@@ -380,8 +394,10 @@ class TableFrame(pd.DataFrame):
         """
         Replaces data in table, does not alter index or column labels
         
-        Args:
-            :param: new_data:df, dict, list: should have same shape as existing df, not including the index and columns            
+        Parameters
+        ----------
+        new_data : df, dict, list
+                should have same shape as existing df, not including the index and columns            
         """
         # TODO add exception for shape of new data not matching existing data frame, or trim/expand to fit
         if type(new_data) == np.ndarray:
@@ -398,32 +414,52 @@ class TableFrame(pd.DataFrame):
         for column in self.columns:
             self[column] = new_data[column]
 
+    # TODO develop usage
     def hide_index(self, val=True):
-        # TODO develop usage
-        """send true to hide index column, false to show"""
+        """
+        Send true to hide index column, false to show
+        
+        Parameters
+        ----------
+        val : bool
+        """
         self.visible_index = val
 
+    # TODO develop usage
     def hide_columns(self, val=True):
-        # TODO develop usage
-        """send true to hide column labels, false to show"""
+        """
+        Send true to hide column labels, false to show
+                
+        Parameters
+        ----------
+        val : bool
+        """
         self.visible_columns = val
 
     def add_label(self, row, col, text, fontstyle='normal'):
-        """Adds label to subframe
+        """
+        Adds label to subframe
         
-        Args:
-            :param: row:int: row in subframe 
-            :param: col:int col in subframe
-            :param: text:str: label text
-            :param: fontstyle:str: label fontstyle
+        Parameters
+        ----------
+        row : int
+                row in subframe 
+        col : int
+                col in subframe
+        text : str
+                label text
+        fontstyle : str
+                label fontstyle
         """
         lbl = tkinter.Label(self.sub_frame, text=text, font=('arial', 10, fontstyle))
         lbl.grid(row=row, column=col, sticky='nsew')
 
         return lbl
 
-    def draw_table(self):
-        """Draws data on subframe"""
+    def show(self):
+        """
+        Display data table on subframe.  Must be called after table creation to display table
+        """
         self.sub_frame = clear_subframe(self.frame, self.sub_frame)
 
         col = 0
@@ -460,12 +496,17 @@ class TableFrame(pd.DataFrame):
         # print(self)
 
     def insert_row(self, row, value, sort=None):
-        """inserts a row in the table at specified lcoation
+        """
+        Inserts a row in the table at specified location
         
-        Args:
-            :param: row:int: row position to insert (zero based)
-            :param: value:list: row values to insert
-            :param: sort:str: sort direction after insertion, default is None
+        Parameters
+        ----------
+        row : int
+            row position to insert (zero based)
+        value : list
+            row values to insert
+        sort : str, default=None
+            sort direction after insertion
         """
         self.loc[row] = value
         if sort is not None:
@@ -477,20 +518,43 @@ class TableFrame(pd.DataFrame):
 
     def insert(self, loc, column, value, allow_duplicates=False):
         # TODO may not need, can probably just use the inherited method
-        """inserts a column in the table at specified location
-        Args:
-            :param:
-            :param:
-            :param:
-            :param: 
-            
+        """
+        Inserts a column in the table at specified location
+        
+        Parameters
+        ----------
+        loc : int 
+            location to insert
+        column : object
+            column name
+        value : int, Series, or array-like
+            values to insert
+        allow_duplicates : bool
         """
         super().insert(loc, column, value, allow_duplicates)
         # self.reindex()
 
     def column_format(self, col, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
+        """
+        Formats column in the table
+        
+        Parameters
+        ----------
+        col : int
+            column to be formatted
+        format_ : str
+            format code ('$', 'float', 'int')
+        dec : int, default=2
+            number of decimal places for 'float' and '$'
+        fontname : str
+            name of font to use
+        fontsize : int
+            font size
+        fontstyle : str
+            font style 
+        """
         for index, value_dict in self[col].iteritems():
-            text = string_exp.format_text(dec, format_, value_dict['data'])
+            text = icstring.format_text(dec, format_, value_dict['data'])
             value_dict['data'] = text
             font_tup = ()
             if fontname is not None:
@@ -509,8 +573,25 @@ class TableFrame(pd.DataFrame):
             value_dict['font'] = font_tup
 
     def header_format(self, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
+        """
+        Formats the header (column titles)
+        
+        Parameters
+        ----------
+        format_ : str 
+            format style ('float', '$', 'int')    
+        dec : int, default=2
+            number of decimal places for 'float' and '$'
+        fontname : str
+            name of font to use
+        fontsize : int
+            font size
+        fontstyle : str
+            font style  
+        
+        """
         for header in self.columns:
-            self.rename(columns={header: string_exp.format_text(dec, format_, header)})
+            self.rename(columns={header: icstring.format_text(dec, format_, header)})
             font_tup = ()
             if fontname is not None:
                 font_tup = font_tup + (fontname, )
@@ -528,6 +609,18 @@ class TableFrame(pd.DataFrame):
             self._formattting['header']['font'] = font_tup
 
     def index_format(self, fontname=None, fontsize=None, fontstyle=None):
+        """
+        Formats the index column
+        
+        Parameters
+        ----------
+        fontname : str
+            name of font to use
+        fontsize : int
+            font size
+        fontstyle : str
+            font style  
+        """
         font_tup = ()
         if fontname is not None:
             font_tup = font_tup + (fontname, )
@@ -545,9 +638,27 @@ class TableFrame(pd.DataFrame):
         self._formattting['index']['font'] = font_tup
 
     def row_format(self, row, format_='', dec=2, fontname=None, fontsize=None, fontstyle=None):
+        """
+        Formats row in the table
+        
+        Parameters
+        ----------
+        row : int
+            row to be formatted
+        format_ : str
+            format code ('$', 'float', 'int')
+        dec : int, default=2
+            number of decimal places for 'float' and '$'
+        fontname : str
+            name of font to use
+        fontsize : int
+            font size
+        fontstyle : str
+            font style 
+        """
         row_dict = self.loc[row]
         for value_dict in row_dict:
-            text = string_exp.format_text(dec, format_, value_dict['data'])
+            text = icstring.format_text(dec, format_, value_dict['data'])
             value_dict['data'] = text
             font_tup = ()
             if fontname is not None:
@@ -567,12 +678,19 @@ class TableFrame(pd.DataFrame):
 
     def i_column(self, col, data):
         """
+        Replaces specified column (index) with provided data
+        
+        Usage notes:
             t3['Average'] = [12, 12, 12, 12, 12, 12] is equivalent to
             t3.column('Average', [13, 13, 13, 13, 13, 13]), with exception as listed under data:
-        :param col:int: column index
-        :param data: data to replace in column, must be same length as number of rows, if data is longer then end of
-                list will be truncated, if shorter blank items will be appended to end 
-        :return: no return
+        
+        Parameters
+        ----------
+        col : int
+            column index
+        data : list, series, array like
+            data to replace in column, must be same length as number of rows, if data is longer then end of
+            list will be truncated, if shorter blank items will be appended to end 
         """
         while len(data) > len(self):
             del data[-1]
@@ -583,12 +701,19 @@ class TableFrame(pd.DataFrame):
 
     def column(self, col, data):
         """
+        Replaces specified column (label) with provided data
+        
+        Usage notes:
             t3['Average'] = [12, 12, 12, 12, 12, 12] is equivalent to
             t3.column('Average', [13, 13, 13, 13, 13, 13]), with exception as listed under data:
-        :param col:str: column label
-        :param data: data to replace in column, must be same length as number of rows, if data is longer then end of
-                list will be truncated, if shorter blank items will be appended to end 
-        :return: no return
+        
+        Parameters
+        ----------
+        col : str
+            column label
+        data : list, series, array like
+            data to replace in column, must be same length as number of rows, if data is longer then end of
+            list will be truncated, if shorter blank items will be appended to end 
         """
         while len(data) > len(self):
             del data[-1]
@@ -601,26 +726,32 @@ class TableFrame(pd.DataFrame):
 
     def i_row(self, row, data):
         """
-        Replaces specified row (index) with proivded data
-        :param row:int: row index
-        :param data: data to replace in row, must be same length as number of columns, if data is longer then end of
-                list will be truncated, if shorter blank items will be appended to end 
-        :return: no return 
+        Replaces specified row (index) with provided data
+        
+        Parameters
+        ----------
+        row : int
+            row index
+        data : (list, series, or array like) 
+            data to replace in row, must be same length as number of columns, if data is longer then end of
+            list will be truncated, if shorter blank items will be appended to end 
         """
         while len(data) > len(self.columns):
             del data[-1]
         while len(data) < len(self.columns):
             data.append(self.blank_cell)
 
-        #print(self.iloc[row:, ])
-
     def row(self, row, data):
         """
-        Replaces specified row (label) with proivded data
-        :param row:str: index label
-        :param data: data to replace in row, must be same length as number of columns, if data is longer then end of
-                list will be truncated, if shorter blank items will be appended to end 
-        :return: no return 
+        Replaces specified row (label) with provided data
+        
+        Parameters
+        ----------
+        row : int
+            row index
+        data : (list, series, or array like) 
+            data to replace in row, must be same length as number of columns, if data is longer then end of
+            list will be truncated, if shorter blank items will be appended to end 
         """
         while len(data) > len(self.columns):
             del data[-1]
@@ -632,32 +763,60 @@ class TableFrame(pd.DataFrame):
             v[row]['data'] = next(iter_data)
 
     def row_rename(self):
+        """
+        Rename row index  --*UNDER CONSTRUCTION*--
+         
+        """
         # TODO develop method
         pass
 
     def column_rename(self):
+        """
+        Rename column  --*UNDER CONSTRUCTION*--
+ 
+        """
         # TODO develop method
         pass
 
 
 class ListBoxController(tkinter.Listbox):
-    """creates a list box with specified control buttons and a scroll bar"""
-
+    """
+    Creates a list box with specified control buttons and a scroll bar
+        
+    **METHODS:**
+    
+    **clear** : Clear items in list box
+    
+    **list_items** : Get list of items in list box
+    
+    **add_item** : Add item to list from linked widget
+    
+    **delete_item** : Delete item from list --*UNDER CONSTRUCTION*--
+    
+    Parameters
+    ----------      
+    window : tkinter.Frame
+        object to contain controller
+    row : int
+        row in `window` to add `self.frame`
+    column : int
+        column in `window` to add `self.frame`
+    sticky : str
+        for grid
+    buttons : str
+        buttons to add to controller, order of string indicates order of buttons
+            + = add
+            - = delete
+            c = clear
+    duplicates : bool
+        True to allow duplicates in list
+    issorted : bool
+        True if list to be always sorted
+    widget_link : tkinter.widget
+        widget providing information to add to list, must have a .get()
+    """
     def __init__(self, window, row=0, column=0, sticky='nsew', buttons='+-c', duplicates=False, issorted=True,
                  widget_link=None):
-        """ 
-            :param: window:tkinter.Frame type object to contain controller
-            :param: row:int: row in `window` to add `self.frame`
-            :param: col:int: column in `window` to add `self.frame`
-            :param: sticky:str: for grid
-            :param: buttons:str: buttons to add to controller, order of string indicates order of buttons
-                    + : add 
-                    - : delete
-                    c : clear
-            :param: duplicates:bool: True to allow duplicates in list
-            :param: issorted:cool: True if list to be always sorted
-            :param: widget_link:tkinter.widget: widget providing information to add to list, must have a .get()
-        """
         self.frame = tkinter.Frame(window)
         self.frame.grid(row=row, column=column, sticky=sticky)
 
@@ -673,12 +832,25 @@ class ListBoxController(tkinter.Listbox):
         self._create_buttons(buttons)
 
     def clear(self):
+        """Clear items in list box"""
         self.delete(0, tkinter.END)
 
     def list_items(self):
+        """
+        Get list of items in list box
+        
+        Returns
+        -------
+        items in list box : list
+        """
         return list(self.get(0, tkinter.END))
 
     def _create_buttons(self, but_type):
+        """
+
+        :param but_type: 
+        :return: 
+        """
         col = 4
         for b in reversed(but_type):
             if b == '-':
@@ -702,6 +874,7 @@ class ListBoxController(tkinter.Listbox):
             but.grid(row=1, column=col, sticky='nsew')
 
     def add_item(self):
+        """Add item to list from linked widget"""
         listbox_items = self.list_items()
         if not self.duplicates:
             if self.widget_link.get() not in listbox_items:
@@ -721,14 +894,19 @@ class ListBoxController(tkinter.Listbox):
 
 
 class ScrollFrame(tkinter.Canvas):
-    """ creates a canvas with scroll bar
+    """ 
+    Creates a canvas with scroll bar
     
-    Methods:
-        __init__:
-        onframeconfigure::
-        scroll_frame: returns the frame on the canvas that is used to scroll, any widgets should be placed here
+    **METHODS:**
+        
+    **onframeconfigure** : Reset the scroll region to encompass the inner frame
     
-    http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
+    **scroll_frame** : Returns the frame on the canvas that is used to scroll, any widgets should be placed here
+    
+    Notes:
+    ------
+    Source : 
+        http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
     """
 
     def __init__(self, window):
@@ -745,10 +923,19 @@ class ScrollFrame(tkinter.Canvas):
         self.frame.bind('<Configure>', lambda event, canvas=self:  self.onframeconfigure())
 
     def onframeconfigure(self):
-        """Reset the scroll region to encompass the inner frame"""
+        """
+        Reset the scroll region to encompass the inner frame
+        """
         self.configure(scrollregion=self.bbox("all"))
 
     def scroll_frame(self):
+        """
+        Returns the frame on the canvas that is used to scroll
+        
+        Returns
+        -------
+        scrolling frame : tkinter.Frame
+        """
         return self.frame
 
 

@@ -1,5 +1,5 @@
 import tkinter
-import tkinter_exp
+import ictkinter
 import numpy as np
 import pandas as pd
 import time
@@ -25,7 +25,7 @@ data_dict = {2014: ['00', '01', '02', '03'],
              2010: ['40', '41', '42', '43'],
              2009: ['50.0', '51.0', '52.0', '53.0']}
 
-table = tkinter_exp.TableFrame(main, row=4, data=data_dict, orient='index', columns=['Average', 'Min', 'Max', 'Count'])
+table = ictkinter.TableFrame(main, row=4, data=data_dict, orient='index', columns=['Average', 'Min', 'Max', 'Count'])
 print(table)
 #print('-------------------------------------------------')
 table.row(2014, [12, 12, 12, 12, 12, 12])
@@ -35,14 +35,14 @@ table.column_format('Average', format_='float', fontstyle='bold')
 table.column_format('Min', format_='$')
 table.column_format('Count', format_='int')
 
-table.draw_table()
+table.show()
 
 table.row_format(2014, format_='float', fontstyle='bold')
 
 table.header_format(fontstyle='bold', fontsize=12)
 table.index_format(fontstyle='bold', fontsize=12)
 
-table.draw_table()
+table.show()
 
 main.mainloop()
 
