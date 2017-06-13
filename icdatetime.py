@@ -36,6 +36,7 @@ def day_to_int(days_to_conv):
         ['F', 'FRIDAY', 'FRI', '6', 6],
         ['SA', 'SATURDAY', 'SAT', '7', 7]
     """
+    print(days_to_conv)
     if type(days_to_conv) is str:
         if days_to_conv.upper() in ['SU', 'SUNDAY', 'SUNDAY', '1', 1]:
             days_to_conv = [1]
@@ -81,7 +82,7 @@ def format_weekday(day, format_='full'):
     -------
     formatted weekday : str or int
     """
-    if day in ['SU', 'SUNDAY', 'SUNDAY', '1', 1]:
+    if day in ['SU', 'SUNDAY', 'SUN', '1', 1]:
         if format_ == 'full':
             return 'Sunday'
         if format_ == 'abbr':
